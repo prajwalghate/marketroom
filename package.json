@@ -15,7 +15,7 @@
     "format": "prettier --write \"**/*.{ts,tsx,md,json,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
     "catalog:check": "pnpm --filter @marketroom/catalog run check",
-    "prepare": "husky",
+    "prepare": "husky || true",
     "contrast": "turbo run contrast"
   },
   "devDependencies": {

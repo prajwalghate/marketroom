@@ -140,6 +140,48 @@ left in `adapters` so live trading can be added without a refactor.
 
 ---
 
+## Deploy
+
+Deployed on Vercel from `main`. Configuration lives in [`vercel.json`](vercel.json) at the
+repo root, so no dashboard setup is required — import the repo with **Root Directory left
+as the repo root** and it builds correctly.
+
+```bash
+# one-time, from the repo root
+vercel login
+vercel link          # accept the repo root as Root Directory
+vercel --prod        # or: git push — main auto-deploys once linked
+```
+
+**No environment variables are required.** Every data source is a public,
+unauthenticated endpoint. The vars in `.env.example` only exist to point at different
+endpoints (e.g. a testnet) or to tune the cache, and all have working defaults in code.
+
+### How it builds
+
+| Setting | Value                                           | Why                                      |
+| ------- | ----------------------------------------------- | ---------------------------------------- |
+| Install | `pnpm install --frozen-lockfile`                | Workspace install from the root          |
+| Build   | `pnpm turbo run build --filter=@marketroom/web` | Builds the app and only its dependencies |
+| Output  | `apps/web/.next`                                |                                          |
+
+`prepare` is `husky \|\| true` deliberately: git hooks are a developer-machine concern, and
+a non-zero exit from `prepare` would fail the entire install on Vercel.
+
+### What gets rendered how
+
+| Route               | Mode        |                                                                         |
+| ------------------- | ----------- | ----------------------------------------------------------------------- |
+| `/`                 | Dynamic     | Reads `searchParams` so a shared filtered link arrives already filtered |
+| `/market/[id]`      | SSG         | Every market prerendered at build time                                  |
+| `/trends`, `/about` | Static      |                                                                         |
+| `/api/snapshot`     | Cached JSON | `s-maxage=15, stale-while-revalidate=60`                                |
+
+`/` being dynamic costs little — the data underneath is the shared cached snapshot, so
+filtered links serve in tens of milliseconds rather than hitting an upstream API.
+
+---
+
 ## Docs
 
 - [Reference teardown](docs/research/01-reference-teardown.md) — what the reference
