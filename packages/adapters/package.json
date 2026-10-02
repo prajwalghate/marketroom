@@ -18,8 +18,8 @@
     "zod": "^3.24.1"
   },
   "devDependencies": {
+    "@marketroom/config": "workspace:*",
     "typescript": "^5.7.3",
-    "vitest": "^2.1.8",
-    "@marketroom/config": "workspace:*"
+    "vitest": "^3.2.7"
   }
 }
