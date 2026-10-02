@@ -47,6 +47,28 @@ interface VenueResult {
   readonly quotes: readonly Quote[];
 }
 
+/**
+ * Last known good payload per venue.
+ *
+ * Serve-stale-on-error. A momentary upstream blip would otherwise drop every
+ * one of that venue's markets out of the index — and because the result gets
+ * cached, a one-second failure can persist for the whole TTL and bake itself
+ * into a prerendered page.
+ *
+ * Slightly stale prices, clearly labelled as stale, are far more useful than an
+ * empty table. The UI reads `ok: false` and says so either way.
+ *
+ * Process-local by design: it needs no infrastructure, and the worst case (a
+ * cold instance with no history) is exactly the old behaviour.
+ */
+const lastGood = new Map<
+  VenueId,
+  { listings: readonly Listing[]; quotes: readonly Quote[]; at: number }
+>();
+
+/** How long a cached payload may stand in for a live fetch. */
+const MAX_STALE_MS = 10 * 60 * 1000;
+
 async function loadVenue(adapter: VenueAdapter, signal?: AbortSignal): Promise<VenueResult> {
   const startedAt = Date.now();
   const venue = adapter.venue.id;
@@ -58,6 +80,8 @@ async function loadVenue(adapter: VenueAdapter, signal?: AbortSignal): Promise<V
       adapter.listListings(signal),
       adapter.fetchQuotes(signal),
     ]);
+
+    lastGood.set(venue, { listings, quotes, at: Date.now() });
 
     return {
       status: {
@@ -72,6 +96,27 @@ async function loadVenue(adapter: VenueAdapter, signal?: AbortSignal): Promise<V
       quotes,
     };
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const cached = lastGood.get(venue);
+    const age = cached ? Date.now() - cached.at : Infinity;
+
+    // Fall back to the last good payload while it is recent enough to be
+    // meaningful. Still reported as not-ok, so the UI shows it as degraded.
+    if (cached && age < MAX_STALE_MS) {
+      return {
+        status: {
+          venue,
+          ok: false,
+          listingCount: cached.listings.length,
+          fetchedAt: cached.at,
+          latencyMs: Date.now() - startedAt,
+          error: `${message} — showing data from ${Math.round(age / 1000)}s ago`,
+        },
+        listings: cached.listings,
+        quotes: cached.quotes,
+      };
+    }
+
     return {
       status: {
         venue,
@@ -79,7 +124,7 @@ async function loadVenue(adapter: VenueAdapter, signal?: AbortSignal): Promise<V
         listingCount: 0,
         fetchedAt: Date.now(),
         latencyMs: Date.now() - startedAt,
-        error: error instanceof Error ? error.message : String(error),
+        error: message,
       },
       listings: [],
       quotes: [],

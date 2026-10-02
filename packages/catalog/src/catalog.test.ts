@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { ASSET_ENTRIES } from './assets/index';
-import { allAssets, assetById, knownVenueSymbols, listingIdFor, resolveAssetId, solanaListingSeeds } from './index';
+import {
+  allAssets,
+  assetById,
+  knownVenueSymbols,
+  listingIdFor,
+  resolveAssetId,
+  solanaListingSeeds,
+} from './index';
 
 /**
  * Catalog integrity.
@@ -31,7 +38,10 @@ describe('catalog integrity', () => {
     for (const entry of ASSET_ENTRIES) {
       for (const symbol of entry.hyperliquid ?? []) {
         const existing = seen.get(symbol);
-        expect(existing, `Hyperliquid symbol "${symbol}" is claimed by both ${existing} and ${entry.id}`).toBeUndefined();
+        expect(
+          existing,
+          `Hyperliquid symbol "${symbol}" is claimed by both ${existing} and ${entry.id}`,
+        ).toBeUndefined();
         seen.set(symbol, entry.id);
       }
     }
