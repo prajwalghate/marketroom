@@ -3,9 +3,9 @@
 **Researched:** 2026-10-03 · **Method:** direct API probes against production endpoints
 **Status:** complete — every endpoint below was called live and its response captured
 
-The reference ships no data (see [`01-reference-teardown.md`](./01-reference-teardown.md)).
-Everything the brief asks for — live price action, performance, trends, trading — must come
-from primary sources. This document establishes exactly what is available.
+Everything Marketroom shows — live price action, performance, trends, structure — comes
+from primary sources. This document establishes exactly what is available, with every
+endpoint verified against production.
 
 ---
 
@@ -208,8 +208,8 @@ never does.
 
 > ⚠️ `allMids` on a busy venue is a high-frequency firehose. Coalesce frames into a single
 > animation-frame batch before touching React state, or the index page will re-render
-> itself to death. This is a real performance trap, and the reference's
-> `innerHTML`-on-every-keystroke grid would not survive it.
+> itself to death. This is a real performance trap: any table that re-renders
+> wholesale per frame will drop frames at this update rate.
 
 ---
 
@@ -229,8 +229,7 @@ cancels, leverage. Wallet via Privy / RainbowKit / wagmi.
 **Proposed instead:** a complete, accurate _pre-trade_ surface — live price, depth, spread,
 funding, OI, max leverage, contract specs, risk disclosure — with a deep link out to
 `app.trade.xyz`. Architecturally we leave a clean seam (an `ExecutionProvider` interface)
-so live trading drops in later without a refactor. This is what the reference does too,
-minus everything that makes it useful.
+so live trading drops in later without a refactor.
 
 If you want real trading in-scope, say so and I'll plan it as a dedicated phase with
 testnet (`api.hyperliquid-testnet.xyz`) first — but it should not block the MVP.
@@ -258,17 +257,17 @@ packages/catalog/src/markets/
 | ------------------------- | ------------------------------------------------------------------------------- |
 | `marketId` (`xyz:NVDA`)   | Join key to live data                                                           |
 | `name`, `country`, `flag` | Curated                                                                         |
-| `sector` → `industry`     | Curated — **two-level**, fixing the reference's 49 flat strings                 |
+| `sector` → `industry`     | Curated — **two-level**; a flat list collapses into ~49 unrelated buckets       |
 | `assetClass`              | `equity` / `index` / `etf` / `commodity` / `fx` — reference has no such concept |
-| `summary`                 | Curated editorial (seeded from the reference's 62)                              |
-| `peers[]`                 | Curated — enables "related markets", which the reference lacks                  |
+| `summary`                 | Curated editorial                                                               |
+| `peers[]`                 | Curated — powers "related markets"                                              |
 | `listedAt`, `isPrivate`   | Curated                                                                         |
 
 **One file per market is deliberate** — it is the single biggest lever for parallel work.
 Two people adding catalog entries never touch the same file, so git never conflicts.
 
 A CI check fails the build when a live `marketId` has no catalog entry, so the 67-market
-drift that rotted the reference cannot silently happen to us.
+kind of drift cannot accumulate unnoticed.
 
 ---
 
@@ -323,7 +322,7 @@ MVP's demo surface depends on it.
 | Undocumented rate limits on `info`       | Medium   | Single server-side poller → cache fan-out to all clients. Never let browsers hit Hyperliquid directly for shared data. |
 | `allMids` firehose melts the client      | Medium   | Coalesce into one rAF batch; `useSyncExternalStore`, not state-per-tick                                                |
 | String numerics cause float/sort bugs    | Medium   | Parse once at the adapter boundary; typed `Market` after that                                                          |
-| Catalog drifts from live book            | High     | CI check fails on unmapped `marketId` — this is what rotted the reference                                              |
+| Catalog drifts from live book            | High     | CI check fails on unmapped `marketId`                                                                                  |
 | `dex: "xyz"` omitted → silent wrong data | High     | Adapter is the only thing that may construct a query; enforce in types                                                 |
 | Venue adds/removes markets               | Low      | Catalog keyed on `marketId`; unmapped markets degrade gracefully, never crash                                          |
 

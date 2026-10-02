@@ -61,7 +61,7 @@ export default async function TrendsPage() {
     .slice(0, 10);
 
   // Cross-venue dislocations — only computable because one asset holds many
-  // listings. Nothing in the reference could produce this view.
+  // listings — a single-venue screen has nothing to compare.
   const dislocations = snapshot.assets
     .flatMap((view) => {
       const spread = venueSpread(view);

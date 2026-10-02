@@ -128,8 +128,8 @@ Not binding — just the lowest-friction seam.
 3. `pnpm catalog:check` — confirms the venue symbol resolves.
 
 The coverage check fails CI when the live venue lists a market the catalog doesn't know
-about. This is deliberate: the reference we started from had drifted to covering only 48%
-of its venue, and nothing told anyone.
+about. This is deliberate: venues add markets continuously, and an index that quietly
+omits them is worse than one that admits it cannot see them.
 
 ---
 

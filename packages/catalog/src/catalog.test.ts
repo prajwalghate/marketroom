@@ -97,8 +97,8 @@ describe('resolveAssetId', () => {
   });
 
   it('resolves venue symbols that differ from the display ticker', () => {
-    // The reference called these SKHYNIX / SAMSUNG / WTIOIL, which match no
-    // real market id on the venue.
+    // Display tickers and venue market ids diverge: SK hynix is SKHX, Samsung
+    // is SMSN, WTI crude is CL. Guessing from the display name finds nothing.
     expect(resolveAssetId('hyperliquid', 'SKHX')).toBe('skhx');
     expect(resolveAssetId('hyperliquid', 'SMSN')).toBe('smsn');
     expect(resolveAssetId('hyperliquid', 'CL')).toBe('cl');

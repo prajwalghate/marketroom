@@ -180,7 +180,7 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
       </div>
 
       {/* ── Sector ────────────────────────────────────────────────────── */}
-      {/* Top-level sectors only. The reference exposed ~50 freeform chips,
+      {/* Top-level sectors only. The full industry list runs to ~50 values,
           which is a wall of text rather than a filter. */}
       <div
         className="mr-filter-group"

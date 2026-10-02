@@ -18,18 +18,18 @@ scripts/contrast.mjs    the WCAG gate: pnpm --filter @marketroom/ui contrast
 ## 1. The five rules
 
 These are not style preferences. Each one is a direct fix for a measured defect
-in the reference UI we replaced — see `docs/research/01-reference-teardown.md`
-§5, which has the numbers.
+common to dense financial UIs — everything on screen competing for attention at
+once.
 
 **1. The data is the only thing allowed to be colourful.** Chrome is neutral.
 Borders, labels, headings, nav, footers, table rules: greys. If a page looks
 monochrome apart from the prices, it is correct.
 
 **2. Hairlines are never tinted.** `--mr-border*` are neutral greys and have no
-hue variants. The reference tinted its hairlines with its accent at 13–28%
-alpha, and the result was a page that hummed green. Depth comes from the surface
-ramp — `--mr-bg` → `--mr-surface-3` have real, measurable luminance separation —
-never from a glowing border.
+hue variants. Tinting structural chrome with the accent — even at 13–28% alpha —
+makes the whole page hum with that hue. Depth comes from the surface ramp
+(`--mr-bg` → `--mr-surface-3` have real, measurable luminance separation), never
+from a glowing border.
 
 **3. One accent, for interactive affordance and focus only.** `--mr-accent` marks
 things you can act on: focus rings, the pressed state of a control, a selected

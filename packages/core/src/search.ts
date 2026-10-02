@@ -5,9 +5,8 @@
  * in well under a frame on the client. Keeping it here (rather than in a
  * component) makes it unit-testable and keeps the UI layer declarative.
  *
- * Unlike the reference's plain `includes()` check, matches are *ranked* — an
- * exact ticker match must outrank an incidental substring hit in a summary
- * paragraph. Typing "GO" should surface GOOGL and GOLD first, not whichever
+ * Matches are *ranked* rather than merely filtered: an exact ticker match must
+ * outrank an incidental substring hit in a summary paragraph. Typing "GO" should surface GOOGL and GOLD first, not whichever
  * company happens to mention "go" in its editorial text.
  */
 
@@ -160,8 +159,8 @@ function changeFraction(view: AssetView): number | null {
 /**
  * Descending comparator that always sorts missing values last, regardless of
  * direction. A row with no data should never win a "top gainers" sort by
- * default-ordering to the top — the reference got this subtly wrong by mapping
- * nulls to `Infinity`/`-1`.
+ * default-ordering to the top. Mapping nulls to `Infinity`/`-1` to force them
+ * into position is the usual bug here: it flips with the sort direction.
  */
 function byDescending(a: number | null, b: number | null): number {
   if (a === null && b === null) return 0;

@@ -6,8 +6,8 @@
  *
  * ── Why this palette looks the way it does ───────────────────────────────────
  *
- * The reference's palette was measured in docs/research/01-reference-teardown.md
- * §5. Its problems were specific, not vague:
+ * This palette exists in reaction to a specific failure mode in dense financial
+ * UIs — everything shouting at once. The problems it avoids:
  *
  *   1. One very high-chroma mint (#4FE3AE / #7CFBD0) carried borders, labels,
  *      values, hover states and decoration simultaneously — so nothing read as
@@ -80,7 +80,7 @@
   --mr-accent-border: rgba(107, 140, 196, 0.68);
 
   /* ── Semantic: price direction ────────────────────────────────────────── */
-  /* Noticeably desaturated against the reference's neon. These read clearly
+  /* Deliberately desaturated. These read clearly
      without glowing, because nothing else on the page competes for attention.
      NOTE: colour is never the sole signal — every price also carries a sign
      (+/−) and an arrow glyph, for red/green colour blindness.

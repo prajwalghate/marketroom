@@ -75,8 +75,7 @@ export const catalogEntryById = (id: string): CatalogEntry | undefined => entryB
  *
  * Returns `undefined` for unmapped markets. Callers skip those rather than
  * failing — but CI's coverage check flags them, because silently dropping live
- * markets is exactly the drift that left the reference covering only 48% of the
- * venue.
+ * markets is how an index silently drifts out of date.
  */
 export function resolveAssetId(venue: VenueId, venueSymbol: string): string | undefined {
   return assetIdByVenueSymbol.get(`${venue}:${venueSymbol.toUpperCase()}`);

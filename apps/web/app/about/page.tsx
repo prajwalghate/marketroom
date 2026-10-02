@@ -9,9 +9,9 @@ export const metadata: Metadata = {
 /**
  * Methodology.
  *
- * The reference's honest caveats section was one of the better things about it,
- * and the instinct is worth carrying forward: state where numbers come from,
- * and say plainly when something is not known.
+ * State where every number comes from, and say plainly when something is not
+ * known. On a product whose whole premise is that a ticker can hide very
+ * different instruments, vagueness here would undo the point.
  */
 export default function AboutPage() {
   return (

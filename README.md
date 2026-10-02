@@ -100,7 +100,7 @@ states:
 > injects it centrally so this cannot be got wrong at a call site.
 
 Full endpoint study with verified request/response shapes:
-[`docs/research/02-data-sources.md`](docs/research/02-data-sources.md).
+[`docs/research/01-data-sources.md`](docs/research/01-data-sources.md).
 
 ---
 
@@ -197,7 +197,6 @@ filtered links serve in tens of milliseconds rather than hitting an upstream API
 
 ## Docs
 
-- [Reference teardown](docs/research/01-reference-teardown.md) — what the reference
-  actually was, and why it could not be "rebuilt"
-- [Data sources](docs/research/02-data-sources.md) — every endpoint, verified live
-- [Proposal](docs/research/03-proposal.md) — stack, structure, decisions
+- [Data sources](docs/research/01-data-sources.md) — every endpoint, verified live
+- [Architecture](docs/research/02-architecture.md) — stack, structure, decisions
+- [ADR 0001](docs/adr/0001-asset-listing-split.md) — why Asset and Listing are separate

@@ -37,16 +37,16 @@ export interface Venue {
 // ---------------------------------------------------------------------------
 
 /**
- * What kind of thing the underlying is. The reference had no such concept and
- * consequently mixed NVDA, GOLD and EUR into one undifferentiated list.
+ * What kind of thing the underlying is. Without this, NVDA, GOLD and EUR end up
+ * in one undifferentiated list, and no filter or aggregate means anything.
  */
 export const ASSET_CLASSES = ['equity', 'index', 'etf', 'commodity', 'fx', 'crypto'] as const;
 export type AssetClass = (typeof ASSET_CLASSES)[number];
 
 /**
- * Two-level taxonomy, replacing the reference's 49 flat freeform strings
- * (`Semiconductors`, `Semiconductors (Memory)`, `Semiconductor Equipment`, …
- * were all separate top-level buckets).
+ * Two-level taxonomy. A flat list turns `Semiconductors`,
+ * `Semiconductors (Memory)` and `Semiconductor Equipment` into three unrelated
+ * top-level buckets, so neither filtering nor sector aggregates hold together.
  */
 export interface Taxonomy {
   readonly sector: string;
@@ -126,8 +126,7 @@ export interface Listing {
  * `Number()` call ever happens at render time.
  *
  * `null` means "this venue does not provide this metric" — not zero. Rendering
- * a missing metric as 0 would be a lie, which the reference's methodology
- * section is right to warn against.
+ * a missing metric as 0 is a lie, and on financial data an expensive one.
  */
 export interface Quote {
   readonly listingId: string;

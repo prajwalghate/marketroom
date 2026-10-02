@@ -22,9 +22,8 @@ import { useLivePrices } from '@/lib/useLivePrices';
 /**
  * The market table.
  *
- * Two performance decisions matter here and both are deliberate departures from
- * the reference, which re-rendered its entire grid via `innerHTML` on every
- * keystroke:
+ * Two performance decisions matter here, because the naive version of this
+ * table re-renders every row on every keystroke and every price tick:
  *
  *  1. Rows are `memo`ised, so a live price tick on one row re-renders that row
  *     only — not the other 128.

@@ -23,9 +23,9 @@ import { getAssetView, getCandles, getOrderBook, getSnapshot } from '@/lib/data'
 /**
  * Market detail.
  *
- * Unlike the reference — whose detail view was a modal with no URL, no deep
- * link and no back-button support — this is a real route. It can be linked,
- * shared, bookmarked and statically generated.
+ * A real route rather than a modal: it can be linked, shared, bookmarked and
+ * statically generated. A market is the thing people send each other, so it
+ * needs an address.
  *
  * Chart data is fetched on the server and rendered into the HTML, so the chart
  * appears with the page rather than after a client-side request.

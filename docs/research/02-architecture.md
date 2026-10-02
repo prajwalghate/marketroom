@@ -1,7 +1,7 @@
-# Marketroom — Technical Proposal
+# Marketroom — Architecture
 
-**Status:** 🟡 awaiting sign-off before implementation
-**Depends on:** [`01-reference-teardown.md`](./01-reference-teardown.md) · [`02-data-sources.md`](./02-data-sources.md)
+**Status:** ✅ implemented
+**Depends on:** [`01-data-sources.md`](./01-data-sources.md)
 
 ---
 
@@ -23,7 +23,7 @@
 
 **Deliberately excluded for MVP:** no database (the catalog is in-repo and git-versioned —
 a DB adds ops burden and solves nothing we have), no auth, no order placement (see
-`02-data-sources.md` §3).
+`01-data-sources.md` §3).
 
 ---
 
@@ -127,7 +127,7 @@ the measured teardown in `01` §5.
 
 - **Neutral ramp.** A near-neutral surface ramp with _real_ luminance separation, so depth
   comes from surfaces rather than glowing borders. **Hairlines untinted** — this alone kills
-  most of the reference's hum.
+  most of the visual hum dense financial UIs suffer from.
 - **One accent, used sparingly** — interactive affordance and focus only. Not borders, not
   labels, not values, not decoration.
 - **Semantic price tokens** — `up` / `down` / `flat`, desaturated well below the
@@ -182,9 +182,9 @@ Phases 3–5 are parallelizable across two people once phase 2 lands.
 
 > _"hyperliquid + solana — longer vision is dexscreener or defillama of stocks on chain"_
 
-That is an **aggregator**, and an aggregator cannot be built on the reference's data model.
-The reference assumes one row = one market on one venue. We need one row = **one company,
-listed on many venues**. So the central entity splits in two:
+That is an **aggregator**, and an aggregator cannot be built on a single-venue data model
+where one row = one market. We need one row = **one company, listed on many venues**. So
+the central entity splits in two:
 
 ```
 Asset                        the underlying company/instrument — NVDA

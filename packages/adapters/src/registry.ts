@@ -186,8 +186,9 @@ export async function buildSnapshot(
  * Coverage report: which catalog entries never appeared in a live snapshot, and
  * which live markets have no catalog entry.
  *
- * The second number is the one that matters — it is exactly the drift that left
- * the reference missing 67 of the venue's 129 markets. CI fails on it.
+ * The second number is the one that matters: a venue adds markets continuously,
+ * and an aggregator that quietly omits them is worse than one that says it
+ * cannot see them. CI fails on it.
  */
 export async function catalogCoverage(config: RegistryConfig = {}): Promise<{
   mappedAssets: number;
