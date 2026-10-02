@@ -470,11 +470,13 @@
   display: block;
 }
 
-.mr-row-link::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-}
+/* Deliberately NO stretched `::after { inset: 0 }` overlay here.
+   An absolutely positioned overlay resolves against its nearest positioned
+   ancestor, and `position: relative` on a `<tr>` is not honoured by every
+   browser. Where it is ignored the overlay escapes to the initial containing
+   block and covers the whole page, so every click — filters, search, nav —
+   lands on one market row. Whole-row navigation is a delegated click handler
+   in MarketTable instead; see the note there. */
 
 /* Now that the hit area is the whole row, a ring around only the ticker cell
    understates what Enter will activate. Guarded by @supports so the default

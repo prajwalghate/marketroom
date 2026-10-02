@@ -16,6 +16,8 @@ import {
 import { Badge, PriceChange, Sparkline, VenueBadge } from '@marketroom/ui';
 import Link from 'next/link';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { useRouter } from 'next/navigation';
+import type { MouseEvent as ReactMouseEvent } from 'react';
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLivePrices } from '@/lib/useLivePrices';
 
@@ -68,6 +70,37 @@ const ASCENDING: ReadonlySet<SortKey> = new Set<SortKey>(['symbol', 'sector', 'c
 
 export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTableProps) {
   const live = useLivePrices();
+  const router = useRouter();
+
+  /**
+   * Whole-row navigation, by delegation.
+   *
+   * This used to be a stretched `.mr-row-link::after { inset: 0 }`, which is the
+   * usual trick — and it is quietly broken. An absolutely positioned overlay
+   * resolves against its nearest *positioned ancestor*, and `position: relative`
+   * on a `<tr>` is not honoured by every browser. Where it is ignored the
+   * overlay escapes to the initial containing block and covers the entire page,
+   * so every click anywhere — filters, search, nav — lands on whichever row
+   * painted last. It looks fine in one browser and bricks the page in another.
+   *
+   * One delegated handler instead: no overlay, no containing-block assumption,
+   * identical behaviour everywhere. The real `<a>` stays in the first cell, so
+   * keyboard, middle-click, "open in new tab" and screen readers are unaffected,
+   * and modified clicks are handed back to the browser.
+   */
+  const handleRowClick = (event: ReactMouseEvent<HTMLTableSectionElement>) => {
+    const target = event.target as HTMLElement | null;
+    // Anything genuinely interactive handles its own click.
+    if (target?.closest('a, button, input, select, textarea, [role="button"]')) return;
+    // Let the browser own modified clicks (new tab, new window, download).
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey || event.button !== 0)
+      return;
+    // Never hijack a click that was really a text selection.
+    if (window.getSelection()?.toString()) return;
+
+    const id = target?.closest('tr')?.dataset.assetId;
+    if (id) router.push(`/market/${id}`);
+  };
 
   return (
     <div className="mr-table-scroll">
@@ -126,7 +159,12 @@ export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTa
             })}
           </tr>
         </thead>
-        <VirtualBody assets={assets} sparklines={sparklines} live={live} />
+        <VirtualBody
+          assets={assets}
+          sparklines={sparklines}
+          live={live}
+          onRowClick={handleRowClick}
+        />
       </table>
     </div>
   );
@@ -173,6 +211,7 @@ interface BodyProps {
   assets: readonly AssetView[];
   sparklines: Record<string, Candle[]>;
   live: ReadonlyMap<string, number>;
+  onRowClick: (event: ReactMouseEvent<HTMLTableSectionElement>) => void;
 }
 
 /**
@@ -186,7 +225,7 @@ interface BodyProps {
  * read as `null` during the first render and silently pinning the window to the
  * top of the list.
  */
-function VirtualBody({ assets, sparklines, live }: BodyProps) {
+function VirtualBody({ assets, sparklines, live, onRowClick }: BodyProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
@@ -195,14 +234,18 @@ function VirtualBody({ assets, sparklines, live }: BodyProps) {
   // rendering a window server-side would mean guessing a viewport height.
   // Matching markup on both sides also keeps hydration clean.
   if (!mounted || assets.length <= VIRTUALIZE_ABOVE) {
-    return <PlainBody assets={assets} sparklines={sparklines} live={live} />;
+    return (
+      <PlainBody assets={assets} sparklines={sparklines} live={live} onRowClick={onRowClick} />
+    );
   }
-  return <WindowedBody assets={assets} sparklines={sparklines} live={live} />;
+  return (
+    <WindowedBody assets={assets} sparklines={sparklines} live={live} onRowClick={onRowClick} />
+  );
 }
 
-function PlainBody({ assets, sparklines, live }: BodyProps) {
+function PlainBody({ assets, sparklines, live, onRowClick }: BodyProps) {
   return (
-    <tbody>
+    <tbody onClick={onRowClick}>
       {assets.map((view) => (
         <MarketRow
           key={view.asset.id}
@@ -227,7 +270,7 @@ function PlainBody({ assets, sparklines, live }: BodyProps) {
  * search covers the whole dataset and is the better tool here, but this is a
  * real regression for anyone who reaches for Ctrl+F.
  */
-function WindowedBody({ assets, sparklines, live }: BodyProps) {
+function WindowedBody({ assets, sparklines, live, onRowClick }: BodyProps) {
   const bodyRef = useRef<HTMLTableSectionElement>(null);
   const [scrollMargin, setScrollMargin] = useState(0);
 
@@ -263,7 +306,7 @@ function WindowedBody({ assets, sparklines, live }: BodyProps) {
   const padBottom = last ? virtualizer.getTotalSize() - last.end : 0;
 
   return (
-    <tbody ref={bodyRef}>
+    <tbody ref={bodyRef} onClick={onRowClick}>
       {padTop > 0 && (
         <tr aria-hidden="true" style={{ height: padTop }}>
           <td colSpan={COLUMNS.length} style={{ padding: 0, border: 'none' }} />
@@ -343,7 +386,7 @@ const MarketRow = memo(function MarketRow({
   const spread = venueSpread(view);
 
   return (
-    <tr ref={measureRef} data-index={index}>
+    <tr ref={measureRef} data-index={index} data-asset-id={asset.id}>
       <td data-col="asset">
         <Link href={`/market/${asset.id}`} className="mr-row-link" prefetch>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
