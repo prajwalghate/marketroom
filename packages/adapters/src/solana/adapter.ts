@@ -54,9 +54,22 @@ const MINTS_PER_REQUEST = 50;
 const USDC_MINT = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v';
 const USDC_DECIMALS = 6;
 
-/** A custody-backed token: real ownership and redemption, but no votes. */
+/**
+ * What an xStock actually confers — per the issuer's own legal overview.
+ *
+ * `ownership: false` is the correction that matters. An xStock is a **bearer
+ * debt instrument classified as a tracker certificate**: it gives economic
+ * exposure to the underlying equity, secured by shares the issuer holds, but
+ * the holder does not own the share. Calling that "ownership" would be exactly
+ * the conflation this product exists to prevent — the difference only surfaces
+ * when it matters most, in an issuer default.
+ *
+ * Dividends are passed through, but by reinvestment: the custodian receives the
+ * cash and buys more of the same stock, and holder balances rise through a
+ * multiplier rather than a payment.
+ */
 const TOKENIZED_EQUITY_RIGHTS = {
-  ownership: true,
+  ownership: false,
   dividends: true,
   voting: false,
   redeemable: true,
@@ -135,23 +148,30 @@ export class SolanaAdapter implements VenueAdapter {
         redemption: {
           available: true,
           summary:
-            'Redeemable 1:1 for the underlying share with the issuer, through a verified account. Secondary holders normally exit by selling on-chain instead.',
-          // The issuer sets redemption minimums commercially rather than
-          // publishing one per token, so we assert nothing we cannot source.
+            'Redeemable with the issuer at 1:1 against the underlying share — but only from a whitelisted wallet. Primary-market access requires onboarding, KYC and AML with the issuer first. Everyone else exits by selling on-chain.',
+          // The issuer sets minimums commercially rather than publishing one
+          // per token, so we assert nothing we cannot source.
           minimumUsd: null,
         },
         eligibility:
-          'Issued to non-US persons. Direct redemption requires onboarding and verification with the issuer; holding the token on-chain does not.',
+          'Not marketed, offered or solicited in the United States, to U.S. Persons, or in any other prohibited jurisdiction. Issued under Jersey and EU frameworks; other jurisdictions may classify these differently.',
+        backing:
+          'Backed asset-by-asset by shares held with regulated custodians in segregated sub-accounts, with no commingling between products. Collateral sits under a three-party Account Control Agreement between the issuer, the custodian and an independent Security Agent.',
         sources: [
-          { label: 'Issuer', url: 'https://xstocks.com', kind: 'issuer' as const },
+          { label: 'Issuer docs', url: 'https://docs.xstocks.fi/docs', kind: 'docs' as const },
           {
-            label: 'Terms & prospectus',
-            url: 'https://backed.fi/legal-documentation',
+            label: 'Legal overview',
+            url: 'https://docs.xstocks.fi/docs/product-legal-overview',
             kind: 'terms' as const,
           },
           {
-            label: 'Collateral attestation',
-            url: 'https://backed.fi/product-overview',
+            label: 'Issuance & redemption',
+            url: 'https://docs.xstocks.fi/docs/issuance-and-redemption',
+            kind: 'terms' as const,
+          },
+          {
+            label: 'Prospectus & final terms',
+            url: 'https://assets.backed.fi/legal-documentation',
             kind: 'attestation' as const,
           },
           {

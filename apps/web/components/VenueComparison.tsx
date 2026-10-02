@@ -207,6 +207,11 @@ export function VenueComparison({ view }: { view: AssetView }) {
                 <TrustBlock title="Redemption">{listing.redemption.summary}</TrustBlock>
               )}
 
+              {/* What actually stands behind it. Shown before eligibility
+                  because "backed by nothing" is the single most consequential
+                  fact about a perp, and it is otherwise only implied. */}
+              {listing.backing && <TrustBlock title="Backing">{listing.backing}</TrustBlock>}
+
               {listing.eligibility && (
                 <TrustBlock title="Eligibility">{listing.eligibility}</TrustBlock>
               )}

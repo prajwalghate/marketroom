@@ -1,6 +1,3 @@
-/* eslint-disable no-console */
-/* global console, process -- the workspace eslint config declares no Node globals, and
-   its `scripts/**` override only covers .ts files. */
 /**
  * WCAG 2.1 contrast gate for the token contract.
  *

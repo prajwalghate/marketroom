@@ -43,6 +43,7 @@ const listing = (id: string, venue: 'hyperliquid' | 'solana'): Listing => ({
   onchainAddress: null,
   redemption: null,
   eligibility: null,
+  backing: null,
   sources: [],
 });
 

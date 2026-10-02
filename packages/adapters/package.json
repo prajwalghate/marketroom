@@ -10,7 +10,8 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests",
+    "links:check": "node scripts/check-links.mjs"
   },
   "dependencies": {
     "@marketroom/catalog": "workspace:*",

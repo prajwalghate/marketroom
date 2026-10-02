@@ -74,3 +74,9 @@ jobs:
 
       - name: Check catalog coverage
         run: pnpm catalog:check
+
+      # Outbound links are the one thing no typecheck, lint or unit test can
+      # validate — only asking the internet can. Three shipped broken once,
+      # including the Trade button on every market.
+      - name: Check outbound links
+        run: pnpm links:check

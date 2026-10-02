@@ -159,6 +159,16 @@ export interface Listing {
   /** Who may actually hold or redeem this. `null` when unrestricted or unknown. */
   readonly eligibility: string | null;
 
+  /**
+   * What stands behind the instrument, if anything.
+   *
+   * A perp is backed by nothing — it settles against an oracle. A tracker
+   * certificate is backed by real shares in segregated custody. Neither is
+   * ownership, so `rights.ownership` alone cannot express the difference, and
+   * the difference is the whole question in an issuer default.
+   */
+  readonly backing: string | null;
+
   /** Authoritative links — issuer, terms, attestations, explorer. */
   readonly sources: readonly SourceLink[];
 }

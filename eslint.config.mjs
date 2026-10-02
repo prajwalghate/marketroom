@@ -141,10 +141,26 @@ export default tseslint.config(
   },
 
   // Scripts and tests are allowed to log and to stub globals.
+  //
+  // `.mjs` is included deliberately: the maintenance scripts run under plain
+  // Node, so without declaring its globals every `console` and `process` reads
+  // as undefined and the whole file fails `no-undef`.
   {
-    files: ['**/scripts/**/*.ts', '**/*.test.ts', '**/*.config.{ts,mjs}'],
+    files: ['**/scripts/**/*.{ts,mjs,js}', '**/*.test.ts', '**/*.config.{ts,mjs}'],
+    languageOptions: {
+      globals: {
+        console: 'readonly',
+        process: 'readonly',
+        fetch: 'readonly',
+        URL: 'readonly',
+        AbortSignal: 'readonly',
+        setTimeout: 'readonly',
+        clearTimeout: 'readonly',
+      },
+    },
     rules: {
       'no-console': 'off',
+      'no-undef': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
     },
   },

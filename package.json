@@ -16,7 +16,8 @@
     "format:check": "prettier --check \"**/*.{ts,tsx,md,json,css}\"",
     "catalog:check": "pnpm --filter @marketroom/catalog run check",
     "prepare": "husky || true",
-    "contrast": "turbo run contrast"
+    "contrast": "turbo run contrast",
+    "links:check": "pnpm --filter @marketroom/adapters run links:check"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",

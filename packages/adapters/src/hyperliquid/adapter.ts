@@ -158,7 +158,9 @@ export class HyperliquidAdapter implements VenueAdapter {
       maxLeverage: entry.maxLeverage,
       rights: PERP_RIGHTS,
       issuer: null,
-      tradeUrl: `${this.config.tradeUrl}/trade/${ticker}`,
+      // Verified against the live app: markets are selected by query
+      // parameter, not by path. `/trade/NVDA` returns 404.
+      tradeUrl: `${this.config.tradeUrl}/?market=${encodeURIComponent(ticker)}`,
       // A perp settles in USDC against an oracle. There is no share behind it
       // and no address to inspect — which is the distinction this field exists
       // to make visible rather than leave implied.
@@ -166,6 +168,8 @@ export class HyperliquidAdapter implements VenueAdapter {
       redemption: null,
       eligibility:
         'Derivatives trading is restricted in several jurisdictions, including the United States. Eligibility is determined by the venue, not by this index.',
+      backing:
+        'Nothing. This is a synthetic contract that settles in USDC against an oracle price — no share is held anywhere on your behalf. You are exposed to the oracle, the deployer and liquidation.',
       sources: [
         { label: 'Venue', url: this.config.tradeUrl, kind: 'issuer' },
         { label: 'Market specifications', url: 'https://docs.trade.xyz', kind: 'docs' },
