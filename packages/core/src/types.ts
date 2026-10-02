@@ -98,6 +98,33 @@ export interface HolderRights {
   readonly redeemable: boolean;
 }
 
+/** A link to something authoritative about a listing. */
+export interface SourceLink {
+  readonly label: string;
+  readonly url: string;
+  /**
+   * `onchain` links resolve an address on an explorer and are the only ones a
+   * reader can verify without trusting us or the issuer.
+   */
+  readonly kind: 'issuer' | 'terms' | 'attestation' | 'onchain' | 'docs';
+}
+
+/**
+ * What it takes to actually convert this listing back into the underlying.
+ *
+ * A boolean is not enough. "Redeemable" with a $100k minimum, KYC, and a
+ * jurisdiction restriction is a different product from "redeemable" without
+ * them, and the difference is exactly what a holder needs to know before
+ * buying rather than after.
+ */
+export interface RedemptionTerms {
+  readonly available: boolean;
+  /** Plain-English description of the process. */
+  readonly summary: string;
+  /** Minimum redeemable size in USD, where the issuer sets one. */
+  readonly minimumUsd: number | null;
+}
+
 export interface Listing {
   /** Globally unique: `${venue}:${venueSymbol}`. e.g. `hyperliquid:xyz:NVDA`. */
   readonly id: string;
@@ -114,6 +141,26 @@ export interface Listing {
   readonly issuer: string | null;
   /** Deep link to trade this specific listing. */
   readonly tradeUrl: string;
+
+  /**
+   * The venue's own on-chain identifier for this listing, where one exists —
+   * a Solana mint address, say.
+   *
+   * Shown verbatim and linked to an explorer, because on a permissionless
+   * chain the ticker is not the identity. Anyone can mint a token called
+   * `NVDAx`; only one address is the issuer's. Letting a reader check the
+   * address is the difference between trusting us and verifying.
+   */
+  readonly onchainAddress: string | null;
+
+  /** How to get back to the underlying. `null` for instruments that cannot. */
+  readonly redemption: RedemptionTerms | null;
+
+  /** Who may actually hold or redeem this. `null` when unrestricted or unknown. */
+  readonly eligibility: string | null;
+
+  /** Authoritative links — issuer, terms, attestations, explorer. */
+  readonly sources: readonly SourceLink[];
 }
 
 // ---------------------------------------------------------------------------

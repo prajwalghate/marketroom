@@ -16,9 +16,11 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CandleChart } from '@/components/CandleChart';
+import { ExposurePanel, ExposurePanelFallback } from '@/components/ExposurePanel';
 import { DepthPanel } from '@/components/DepthPanel';
 import { VenueComparison } from '@/components/VenueComparison';
 import { getAssetView, getCandles, getOrderBook, getSnapshot } from '@/lib/data';
+import { Suspense } from 'react';
 
 /**
  * Market detail.
@@ -75,6 +77,7 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
   ]);
 
   const chartChange = seriesChange(candles);
+
   const snapshot = await getSnapshot();
   const peers = asset.peers
     .map((peerId) => snapshot.assets.find((entry) => entry.asset.id === peerId))
@@ -213,6 +216,14 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
               </p>
             )}
           </section>
+
+          {/* Streamed: measuring execution cost is slow and supplementary, so it
+              must not hold back the price, chart or comparison above it. */}
+          {view.listings.length > 1 && (
+            <Suspense fallback={<ExposurePanelFallback />}>
+              <ExposurePanel view={view} />
+            </Suspense>
+          )}
 
           {/* ── Cross-venue comparison — the product thesis ────────────── */}
           <section style={{ marginBottom: 22 }}>

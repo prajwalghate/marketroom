@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['mstr', 'iren'],
   summary:
     'A digital asset treasury and immersion-cooled mining company. Like other treasury vehicles it trades largely as a leveraged proxy for its underlying crypto holdings rather than on operating fundamentals.',
+  solana: [{ mint: 'XsrBCwaH8c46xiqXBChzobgufRKxQxAWUWbndgBNzFn', issuer: 'Backed Finance' }],
   hyperliquid: ['BMNR'],
 });

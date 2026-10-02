@@ -794,3 +794,96 @@
     max-width: none;
   }
 }
+
+/* ── Cost-of-exposure controls ───────────────────────────────────────────── */
+
+.mr-control-label {
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 6px;
+}
+
+.mr-range {
+  width: 100%;
+  height: 20px;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+}
+
+.mr-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--mr-radius-full);
+  background: var(--mr-surface-3);
+}
+
+.mr-range::-moz-range-track {
+  height: 4px;
+  border-radius: var(--mr-radius-full);
+  background: var(--mr-surface-3);
+}
+
+/* The thumb is the one place the accent is allowed on a non-focus control:
+   it IS the interactive affordance. */
+.mr-range::-webkit-slider-thumb {
+  appearance: none;
+  width: 14px;
+  height: 14px;
+  margin-top: -5px;
+  border-radius: var(--mr-radius-full);
+  background: var(--mr-accent);
+  border: none;
+}
+
+.mr-range::-moz-range-thumb {
+  width: 14px;
+  height: 14px;
+  border-radius: var(--mr-radius-full);
+  background: var(--mr-accent);
+  border: none;
+}
+
+/* ── Trust layer: addresses and official sources ─────────────────────────── */
+
+.mr-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 4px 8px;
+  font-family: inherit;
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-muted);
+  background: var(--mr-surface-2);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-sm);
+  cursor: pointer;
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    border-color var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-copy:hover {
+  color: var(--mr-text);
+  border-color: var(--mr-border-strong);
+}
+
+.mr-source-link {
+  padding: 3px 8px;
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-muted);
+  text-decoration: none;
+  background: var(--mr-surface-2);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-full);
+  white-space: nowrap;
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    border-color var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-source-link:hover {
+  color: var(--mr-text);
+  border-color: var(--mr-border-strong);
+}

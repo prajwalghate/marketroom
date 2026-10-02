@@ -1,7 +1,16 @@
 import 'server-only';
 
-import { buildSnapshot, HyperliquidAdapter } from '@marketroom/adapters';
-import type { Candle, Interval, Listing, MarketSnapshot, OrderBook } from '@marketroom/core';
+import { buildSnapshot, HyperliquidAdapter, SolanaAdapter } from '@marketroom/adapters';
+import type {
+  AssetView,
+  Candle,
+  Interval,
+  Listing,
+  MarketSnapshot,
+  OrderBook,
+  VenueCostInputs,
+} from '@marketroom/core';
+import { bookSpread } from '@marketroom/core';
 import { unstable_cache } from 'next/cache';
 
 /**
@@ -133,4 +142,75 @@ export const getSparklineData = unstable_cache(
   },
   ['sparklines'],
   { revalidate: 60, tags: ['sparklines'] },
+);
+
+// ---------------------------------------------------------------------------
+// Cost of exposure
+// ---------------------------------------------------------------------------
+
+/**
+ * Hyperliquid taker fee, as a fraction, charged on each side of a round trip.
+ *
+ * Hard-coded because the venue does not publish a per-market fee in the API.
+ * It is a published venue-wide figure; if it moves, this is the one place to
+ * change it, and the UI labels the result as an estimate.
+ */
+const HYPERLIQUID_TAKER_FEE = 0.00045;
+
+/** Sizes offered in the UI. Quoted server-side so switching size costs nothing. */
+export const EXPOSURE_SIZES = [1_000, 10_000, 100_000] as const;
+
+/**
+ * Execution and carry inputs for every venue carrying an asset.
+ *
+ * Cached per asset and size: these are two upstream round trips per Solana
+ * listing, which is far too slow to do on a slider drag. Quoting all sizes up
+ * front means the client can switch size and holding period with no network at
+ * all.
+ */
+export const getExposureInputs = unstable_cache(
+  async (view: AssetView, notionalUsd: number): Promise<VenueCostInputs[]> => {
+    const hyperliquid = new HyperliquidAdapter(config.hyperliquid);
+    const solana = new SolanaAdapter(config.solana);
+
+    const results = await Promise.all(
+      view.listings.map(async ({ listing, quote }): Promise<VenueCostInputs> => {
+        const base = {
+          listingId: listing.id,
+          venue: listing.venue,
+          kind: listing.kind,
+          maxLeverage: listing.maxLeverage,
+        };
+
+        if (listing.venue === 'hyperliquid') {
+          // Crossing the book costs half the spread each way, so a round trip
+          // is one full spread, plus the taker fee twice.
+          let roundTrip: number | null = null;
+          try {
+            const book = await hyperliquid.fetchOrderBook(listing);
+            const spread = bookSpread(book);
+            if (spread) roundTrip = spread.fraction + HYPERLIQUID_TAKER_FEE * 2;
+          } catch {
+            roundTrip = null;
+          }
+          return {
+            ...base,
+            roundTripFraction: roundTrip,
+            fundingRatePerHour: quote?.fundingRate ?? null,
+          };
+        }
+
+        return {
+          ...base,
+          roundTripFraction: await solana.fetchRoundTripCost(listing, notionalUsd),
+          // A spot token charges no rent for holding it.
+          fundingRatePerHour: null,
+        };
+      }),
+    );
+
+    return results;
+  },
+  ['exposure-inputs'],
+  { revalidate: 120, tags: ['exposure'] },
 );

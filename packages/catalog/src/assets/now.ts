@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['pltr', 'snxx'],
   summary:
     "A workflow-automation platform that has become core plumbing for large enterprises' IT, HR and operations. ServiceNow is layering AI agents across its platform, a natural fit for automating repetitive corporate work. High retention, strong margins and reliable growth earn it a premium P/E. The debate is whether AI agents expand its market or eventually commoditize the workflows it sells. A steady large-cap software compounder.",
+  solana: [{ mint: 'XsBnEFd2EtpwBRNVfN8qLZcVUnuqXRaGCSEEFChLfxL', issuer: 'Backed Finance' }],
   hyperliquid: ['NOW'],
 });

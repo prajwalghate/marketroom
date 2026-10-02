@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['rklb'],
   summary:
     "Elon Musk's private space company and one of the most valuable startups in history — the market its largest OI cap here reflects intense demand for exposure. SpaceX dominates commercial launch via reusable rockets, operates Starlink's global satellite-internet network, and wholly owns the AI company xAI. Because it's private, there's no public P/E or share price; this synthetic market is one of the only ways to trade SpaceX at all. Valuation-driven and headline-sensitive.",
+  solana: [{ mint: 'Xs3oZwbHvqis4NYcf4YKWmEia2eC84wSiVrcYcTqpH8', issuer: 'Backed Finance' }],
   hyperliquid: ['SPCX'],
 });

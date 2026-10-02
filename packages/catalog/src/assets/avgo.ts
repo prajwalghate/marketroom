@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['nvda', 'qcom'],
   summary:
     'A semiconductor and infrastructure-software conglomerate that quietly became an AI heavyweight. Broadcom designs custom AI chips (ASICs) for hyperscalers and dominates high-speed networking silicon — the plumbing of AI data centers. Its VMware acquisition added a large, sticky enterprise-software base. Acquisitive, cash-generative and dividend-paying, it trades on custom-silicon demand from a handful of giant customers, which is also its concentration risk.',
+  solana: [{ mint: 'XsgSaSvNSqLTtFuyWPBhK9196Xb9Bbdyjj4fH3cPJGo', issuer: 'Backed Finance' }],
   hyperliquid: ['AVGO'],
 });

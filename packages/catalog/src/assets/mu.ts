@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['skhx', 'smsn', 'dram'],
   summary:
     "One of the few makers of DRAM and NAND memory, and a direct beneficiary of the AI boom through high-bandwidth memory (HBM) used alongside AI GPUs. Memory is deeply cyclical, so Micron's earnings and P/E swing with supply-demand — cheap at the top of the cycle, expensive at the bottom. Its large $500m OI cap reflects heavy trader interest as an AI-adjacent, high-beta play. Watch HBM capacity, pricing, and the broader memory cycle.",
+  solana: [{ mint: 'XsQLZycSZ7QnBBdBXQaTbQdiUcbRqjNJgyBGAMzhHav', issuer: 'Backed Finance' }],
   hyperliquid: ['MU'],
 });

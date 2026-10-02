@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['amat', 'lrcx', 'tsm'],
   summary:
     'A genuine monopoly at the heart of the chip world. ASML is the only company that makes extreme-ultraviolet (EUV) lithography machines — the room-sized tools required to print the most advanced chips. Every leading-edge fab (TSMC, Samsung, Intel) depends on it. That makes ASML both indispensable and a geopolitical lever, since export controls limit which countries can buy its machines. Dutch-listed; traded here via a U.S. ADR.',
+  solana: [{ mint: 'XshuHQ6o6SVpUNawvnnTMxsZ4tacZsNgVCLorv7TkFq', issuer: 'Backed Finance' }],
   hyperliquid: ['ASML'],
 });

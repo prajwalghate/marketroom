@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['gev', 'usar'],
   summary:
     'A maker of solid-oxide fuel cells that generate on-site electricity for factories, hospitals and — increasingly — power-hungry AI data centers looking for fast, reliable capacity outside the strained grid. That data-center angle has driven renewed investor interest. Bloom hovers around breakeven, so its P/E is volatile or not meaningful. A leveraged bet on distributed power and the energy bottleneck behind the AI build-out; high-beta and news-driven.',
+  solana: [{ mint: 'XsmGSEqT6VXpVis3aVBDxaNwPgHNXbkjkVUCncsLkNB', issuer: 'Backed Finance' }],
   hyperliquid: ['BE'],
 });

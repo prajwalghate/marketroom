@@ -1,7 +1,7 @@
 /**
  * Hyperliquid adapter — HIP-3 tokenized equity perps on trade[XYZ].
  *
- * Endpoint behaviour verified live; see docs/research/02-data-sources.md §1.
+ * Endpoint behaviour verified live; see docs/research/01-data-sources.md §1.
  *
  * ⚠️ The single most important detail in this file: equity markets do NOT live
  * on the default perp universe. Omitting `dex: "xyz"` returns 234 *crypto*
@@ -159,6 +159,22 @@ export class HyperliquidAdapter implements VenueAdapter {
       rights: PERP_RIGHTS,
       issuer: null,
       tradeUrl: `${this.config.tradeUrl}/trade/${ticker}`,
+      // A perp settles in USDC against an oracle. There is no share behind it
+      // and no address to inspect — which is the distinction this field exists
+      // to make visible rather than leave implied.
+      onchainAddress: null,
+      redemption: null,
+      eligibility:
+        'Derivatives trading is restricted in several jurisdictions, including the United States. Eligibility is determined by the venue, not by this index.',
+      sources: [
+        { label: 'Venue', url: this.config.tradeUrl, kind: 'issuer' },
+        { label: 'Market specifications', url: 'https://docs.trade.xyz', kind: 'docs' },
+        {
+          label: 'HIP-3 documentation',
+          url: 'https://hyperliquid.gitbook.io/hyperliquid-docs',
+          kind: 'docs',
+        },
+      ],
     };
   }
 

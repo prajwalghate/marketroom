@@ -40,6 +40,10 @@ const listing = (id: string, venue: 'hyperliquid' | 'solana'): Listing => ({
   rights: { ownership: false, dividends: false, voting: false, redeemable: false },
   issuer: null,
   tradeUrl: '',
+  onchainAddress: null,
+  redemption: null,
+  eligibility: null,
+  sources: [],
 });
 
 const quote = (listingId: string, over: Partial<Quote> = {}): Quote => ({

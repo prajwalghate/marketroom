@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['crwd', 'crwv'],
   summary:
     'An edge network sitting in front of a large share of the web, providing CDN, DDoS protection and zero-trust security. It has pushed aggressively into edge compute and inference, positioning itself as infrastructure for distributed AI workloads.',
+  solana: [{ mint: 'XsR3LAMkzuPP8DnfYaiB2grTWqkBVy286gjJVErK1bi', issuer: 'Backed Finance' }],
   hyperliquid: ['NET'],
 });

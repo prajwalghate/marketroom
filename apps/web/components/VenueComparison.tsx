@@ -8,7 +8,9 @@ import {
   priceChange24h,
   venueSpread,
 } from '@marketroom/core';
-import { Badge, InstrumentBadge, PriceChange, VenueBadge } from '@marketroom/ui';
+import { Badge, InstrumentBadge, PriceChange, VenueBadge, VisuallyHidden } from '@marketroom/ui';
+import type { ReactNode } from 'react';
+import { CopyAddress } from './CopyAddress';
 
 /**
  * Cross-venue comparison.
@@ -196,6 +198,50 @@ export function VenueComparison({ view }: { view: AssetView }) {
                   ? 'Synthetic perpetual tracking an oracle price. Leveraged exposure only — no ownership, dividends or voting. Carries liquidation, oracle and deployer risk.'
                   : 'Custody-backed token. Redeemable for the underlying share, subject to issuer terms and eligibility. Carries issuer and custody risk.'}
               </p>
+
+              {/* ── Structure, below the CTA so card CTAs stay aligned ──── */}
+
+              {/* "Redeemable: yes" is not the answer. How, by whom, and under
+                  what conditions is what separates a real claim from a label. */}
+              {listing.redemption && (
+                <TrustBlock title="Redemption">{listing.redemption.summary}</TrustBlock>
+              )}
+
+              {listing.eligibility && (
+                <TrustBlock title="Eligibility">{listing.eligibility}</TrustBlock>
+              )}
+
+              {listing.onchainAddress && (
+                <div style={{ marginTop: 11 }}>
+                  <div className="mr-control-label" style={{ marginBottom: 4 }}>
+                    Mint address
+                  </div>
+                  <CopyAddress address={listing.onchainAddress} />
+                </div>
+              )}
+
+              {listing.sources.length > 0 && (
+                <div style={{ marginTop: 11 }}>
+                  <div className="mr-control-label" style={{ marginBottom: 5 }}>
+                    Official sources
+                  </div>
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
+                    {listing.sources.map((source) => (
+                      <a
+                        key={source.url}
+                        href={source.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mr-source-link"
+                      >
+                        {source.label}
+                        <span aria-hidden="true"> ↗</span>
+                        <VisuallyHidden> (opens in a new tab)</VisuallyHidden>
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           );
         })}
@@ -214,6 +260,26 @@ export function VenueComparison({ view }: { view: AssetView }) {
           compare them side by side.
         </p>
       )}
+    </div>
+  );
+}
+
+function TrustBlock({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={{ marginTop: 11 }}>
+      <div className="mr-control-label" style={{ marginBottom: 3 }}>
+        {title}
+      </div>
+      <p
+        style={{
+          margin: 0,
+          fontSize: 'var(--mr-text-2xs)',
+          color: 'var(--mr-text-subtle)',
+          lineHeight: 1.55,
+        }}
+      >
+        {children}
+      </p>
     </div>
   );
 }

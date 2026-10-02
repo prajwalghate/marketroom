@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['crcl', 'hood'],
   summary:
     "The world's largest alternative-asset manager, overseeing enormous pools of private equity, real estate, credit and infrastructure capital. Blackstone earns management fees plus performance fees, so its earnings scale with assets and deal activity but can be lumpy. It's a bellwether for private markets and, increasingly, for financing the AI data-center build-out. Rate-sensitive: cheaper capital fuels dealmaking and real-estate values. A blue-chip way to hold private-markets exposure.",
+  solana: [{ mint: 'XsYtTeabUTJnkxWrHZUChwcKpNq6BbqPbWs9ZgLk4Xa', issuer: 'Backed Finance' }],
   hyperliquid: ['BX'],
 });

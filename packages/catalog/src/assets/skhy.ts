@@ -12,5 +12,6 @@ export default defineAsset({
   peers: ['skhx', 'mu'],
   summary:
     'A second SK hynix market line on the venue, alongside the primary SKHX listing. SK hynix is the leading supplier of HBM memory for AI accelerators.',
+  solana: [{ mint: 'XsnhgGRQwhExfS2bmWzR6EYddKGPRGDEjeJsatkmKqU', issuer: 'Backed Finance' }],
   hyperliquid: ['SKHY'],
 });
