@@ -1,0 +1,25 @@
+{
+  "name": "@marketroom/catalog",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run --passWithNoTests",
+    "check": "tsx scripts/check-coverage.ts"
+  },
+  "dependencies": {
+    "@marketroom/core": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8",
+    "@marketroom/config": "workspace:*"
+  }
+}

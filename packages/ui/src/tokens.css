@@ -1,0 +1,299 @@
+/**
+ * Marketroom design tokens.
+ *
+ * This file is the ONLY place a raw colour value may appear. Components
+ * reference tokens; a lint rule rejects hex literals elsewhere.
+ *
+ * ── Why this palette looks the way it does ───────────────────────────────────
+ *
+ * The reference's palette was measured in docs/research/01-reference-teardown.md
+ * §5. Its problems were specific, not vague:
+ *
+ *   1. One very high-chroma mint (#4FE3AE / #7CFBD0) carried borders, labels,
+ *      values, hover states and decoration simultaneously — so nothing read as
+ *      more important than anything else.
+ *   2. Even hairlines were tinted mint at 13–28% alpha, which made the entire
+ *      page hum green.
+ *   3. Its three surface levels sat within a few points of luminance, so depth
+ *      had to be carried by glowing borders instead of by the surfaces.
+ *
+ * The fixes map one-to-one:
+ *
+ *   1. ONE accent, reserved for interactive affordance and focus. Never for
+ *      borders, labels or decoration.
+ *   2. Hairlines are NEUTRAL. No hue in structural chrome, ever.
+ *   3. Surfaces have real, measurable luminance separation, so elevation works
+ *      without any glow.
+ *   4. Price direction gets the saturation budget, because it is the only
+ *      colour in the product that carries meaning.
+ *
+ * Governing principle: **the data is the only thing allowed to be colourful.**
+ */
+
+:root {
+  /* ── Neutral ramp — carries all structure and depth ───────────────────── */
+  --mr-bg: #0b0c0e;
+  --mr-surface-1: #121417;
+  --mr-surface-2: #181b1f;
+  --mr-surface-3: #212529;
+  --mr-surface-raised: #272c31;
+
+  /* Hairlines: deliberately untinted. This single choice removes most of the
+     reference's visual noise. */
+  --mr-border: #262a2f;
+  --mr-border-strong: #343a41;
+  --mr-border-subtle: #1c2024;
+
+  /* ── Text ─────────────────────────────────────────────────────────────── */
+  --mr-text: #e9ebee;
+  --mr-text-muted: #9aa1a9;
+  --mr-text-subtle: #6a717a;
+  --mr-text-inverse: #0b0c0e;
+
+  /* ── Accent — interactive affordance and focus ONLY ───────────────────── */
+  /* A desaturated steel blue. Calm enough to sit beside live numbers without
+     competing with them. */
+  --mr-accent: #6b8cc4;
+  --mr-accent-hover: #80a0d6;
+  --mr-accent-muted: rgba(107, 140, 196, 0.14);
+  --mr-accent-border: rgba(107, 140, 196, 0.38);
+
+  /* ── Semantic: price direction ────────────────────────────────────────── */
+  /* Noticeably desaturated against the reference's neon. These read clearly
+     without glowing, because nothing else on the page competes for attention.
+     NOTE: colour is never the sole signal — every price also carries a sign
+     (+/−) and an arrow glyph, for red/green colour blindness. */
+  --mr-up: #4e9e78;
+  --mr-up-soft: rgba(78, 158, 120, 0.13);
+  --mr-up-border: rgba(78, 158, 120, 0.32);
+
+  --mr-down: #c2706b;
+  --mr-down-soft: rgba(194, 112, 107, 0.13);
+  --mr-down-border: rgba(194, 112, 107, 0.32);
+
+  --mr-flat: #78808a;
+  --mr-flat-soft: rgba(120, 128, 138, 0.12);
+
+  /* ── Status ───────────────────────────────────────────────────────────── */
+  --mr-warn: #c9a227;
+  --mr-warn-soft: rgba(201, 162, 39, 0.13);
+  --mr-danger: #c2706b;
+  --mr-ok: #4e9e78;
+
+  /* ── Venue identity ───────────────────────────────────────────────────── */
+  /* Low-chroma marks for venue chips. These label a source; they must never
+     out-shout a price. */
+  --mr-venue-hyperliquid: #5f9a94;
+  --mr-venue-solana: #8a7bb8;
+
+  /* ── Typography ───────────────────────────────────────────────────────── */
+  --mr-font-sans:
+    var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* All numerics use mono with tabular figures so digits do not jitter when a
+     price ticks and columns align down a table. */
+  --mr-font-mono: var(--font-mono), ui-monospace, 'SF Mono', 'JetBrains Mono', Menlo, monospace;
+
+  --mr-text-2xs: 0.6875rem;
+  --mr-text-xs: 0.75rem;
+  --mr-text-sm: 0.8125rem;
+  --mr-text-base: 0.875rem;
+  --mr-text-md: 1rem;
+  --mr-text-lg: 1.125rem;
+  --mr-text-xl: 1.375rem;
+  --mr-text-2xl: 1.75rem;
+  --mr-text-3xl: 2.25rem;
+
+  /* ── Space / radius / elevation ───────────────────────────────────────── */
+  --mr-radius-sm: 4px;
+  --mr-radius: 6px;
+  --mr-radius-lg: 10px;
+  --mr-radius-full: 999px;
+
+  /* Shadows are nearly invisible by design — elevation is carried by the
+     surface ramp, not by dark halos. */
+  --mr-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --mr-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.45);
+  --mr-shadow-lg: 0 16px 48px -12px rgba(0, 0, 0, 0.6);
+
+  --mr-focus-ring: 0 0 0 2px var(--mr-bg), 0 0 0 4px var(--mr-accent);
+
+  /* Fast enough to feel instant; slow enough to be perceptible. */
+  --mr-duration-fast: 90ms;
+  --mr-duration: 150ms;
+  --mr-ease: cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+/* ── Light theme ─────────────────────────────────────────────────────────── */
+[data-theme='light'] {
+  --mr-bg: #fcfcfd;
+  --mr-surface-1: #ffffff;
+  --mr-surface-2: #f5f6f8;
+  --mr-surface-3: #eceef1;
+  --mr-surface-raised: #ffffff;
+
+  --mr-border: #e2e5ea;
+  --mr-border-strong: #cbd0d8;
+  --mr-border-subtle: #eef0f3;
+
+  --mr-text: #14171a;
+  --mr-text-muted: #5b636d;
+  --mr-text-subtle: #878f99;
+  --mr-text-inverse: #ffffff;
+
+  --mr-accent: #3c63a8;
+  --mr-accent-hover: #2f5293;
+  --mr-accent-muted: rgba(60, 99, 168, 0.1);
+  --mr-accent-border: rgba(60, 99, 168, 0.32);
+
+  /* Darkened for contrast against light surfaces — the dark-theme values would
+     fail WCAG AA here. */
+  --mr-up: #2f7d5a;
+  --mr-up-soft: rgba(47, 125, 90, 0.11);
+  --mr-up-border: rgba(47, 125, 90, 0.3);
+
+  --mr-down: #a84f4a;
+  --mr-down-soft: rgba(168, 79, 74, 0.11);
+  --mr-down-border: rgba(168, 79, 74, 0.3);
+
+  --mr-flat: #6b727c;
+  --mr-flat-soft: rgba(107, 114, 124, 0.1);
+
+  --mr-warn: #8a6d11;
+  --mr-warn-soft: rgba(138, 109, 17, 0.11);
+  --mr-danger: #a84f4a;
+  --mr-ok: #2f7d5a;
+
+  --mr-venue-hyperliquid: #3d7a74;
+  --mr-venue-solana: #6a5b98;
+
+  --mr-shadow-sm: 0 1px 2px rgba(16, 20, 26, 0.06);
+  --mr-shadow: 0 4px 16px -4px rgba(16, 20, 26, 0.1);
+  --mr-shadow-lg: 0 16px 48px -12px rgba(16, 20, 26, 0.14);
+}
+
+/* ── Base ────────────────────────────────────────────────────────────────── */
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  color-scheme: dark;
+}
+
+[data-theme='light'] {
+  color-scheme: light;
+}
+
+body {
+  margin: 0;
+  background: var(--mr-bg);
+  color: var(--mr-text);
+  font-family: var(--mr-font-sans);
+  font-size: var(--mr-text-base);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Every numeric in the product. Tabular figures are not cosmetic here: without
+   them, a ticking price visibly shifts width and columns fail to align. */
+.mr-num {
+  font-family: var(--mr-font-mono);
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+  letter-spacing: -0.01em;
+}
+
+:focus-visible {
+  outline: none;
+  box-shadow: var(--mr-focus-ring);
+  border-radius: var(--mr-radius-sm);
+}
+
+::selection {
+  background: var(--mr-accent-muted);
+}
+
+/* Respect the user's motion preference. Price flashes and bar animations are
+   decorative; nobody should be forced to watch them. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Thin, neutral scrollbars — chrome should recede. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--mr-border-strong) transparent;
+}
+
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+*::-webkit-scrollbar-thumb {
+  background: var(--mr-border-strong);
+  border: 3px solid transparent;
+  background-clip: content-box;
+  border-radius: var(--mr-radius-full);
+}
+
+/* ── Price flash ─────────────────────────────────────────────────────────── */
+/* A brief tinted background on tick. Deliberately subtle: a live table where
+   every row flashes brightly is unreadable, which is the failure mode of most
+   trading UIs. */
+@keyframes mr-flash-up {
+  from {
+    background-color: var(--mr-up-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+@keyframes mr-flash-down {
+  from {
+    background-color: var(--mr-down-soft);
+  }
+  to {
+    background-color: transparent;
+  }
+}
+
+.mr-flash-up {
+  animation: mr-flash-up 600ms var(--mr-ease);
+}
+
+.mr-flash-down {
+  animation: mr-flash-down 600ms var(--mr-ease);
+}
+
+/* Skeleton shimmer — used only for genuinely async panels (order book), never
+   for anything server-rendered. */
+@keyframes mr-pulse {
+  0%,
+  100% {
+    opacity: 0.45;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+.mr-skeleton {
+  background: var(--mr-surface-3);
+  border-radius: var(--mr-radius-sm);
+  animation: mr-pulse 1.6s ease-in-out infinite;
+}

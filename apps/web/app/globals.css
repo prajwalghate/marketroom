@@ -1,0 +1,420 @@
+/**
+ * App-level layout and chrome.
+ *
+ * Every colour here resolves to a `--mr-*` token from
+ * `@marketroom/ui/tokens.css`. No raw colour values in this file.
+ */
+
+.mr-skip-link {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  padding: 10px 16px;
+  background: var(--mr-surface-raised);
+  color: var(--mr-text);
+  border: 1px solid var(--mr-border-strong);
+  border-radius: var(--mr-radius);
+}
+
+.mr-skip-link:focus {
+  left: 12px;
+  top: 12px;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Layout shell ────────────────────────────────────────────────────────── */
+
+:root {
+  --mr-header-height: 57px;
+}
+
+.mr-header {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: color-mix(in srgb, var(--mr-bg) 88%, transparent);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--mr-border);
+}
+
+.mr-header-inner,
+.mr-footer-inner,
+.mr-container {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.mr-header-inner {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+  height: var(--mr-header-height);
+}
+
+.mr-brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--mr-text);
+  flex-shrink: 0;
+}
+
+.mr-brand-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--mr-border-strong);
+  border-radius: var(--mr-radius);
+  font-family: var(--mr-font-mono);
+  font-size: var(--mr-text-sm);
+  font-weight: 600;
+  color: var(--mr-text-muted);
+}
+
+.mr-brand-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+  font-size: var(--mr-text-base);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.mr-brand-sub {
+  font-size: var(--mr-text-2xs);
+  font-weight: 400;
+  color: var(--mr-text-subtle);
+  letter-spacing: 0.02em;
+}
+
+.mr-nav {
+  display: flex;
+  gap: 4px;
+  margin-right: auto;
+}
+
+.mr-nav-link {
+  padding: 6px 11px;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text-muted);
+  text-decoration: none;
+  border-radius: var(--mr-radius);
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    background var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-nav-link:hover {
+  color: var(--mr-text);
+  background: var(--mr-surface-2);
+}
+
+.mr-main {
+  min-height: calc(100vh - var(--mr-header-height) - 140px);
+  padding: 28px 0 64px;
+}
+
+.mr-footer {
+  border-top: 1px solid var(--mr-border);
+  padding: 24px 0 40px;
+  margin-top: 48px;
+}
+
+.mr-footer-inner p {
+  margin: 0 0 8px;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-subtle);
+  max-width: 76ch;
+  line-height: 1.6;
+}
+
+.mr-footer-inner strong {
+  color: var(--mr-text-muted);
+  font-weight: 600;
+}
+
+/* ── Buttons ─────────────────────────────────────────────────────────────── */
+
+.mr-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-family: inherit;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text-muted);
+  background: var(--mr-surface-2);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  cursor: pointer;
+  transition: all var(--mr-duration-fast) var(--mr-ease);
+  white-space: nowrap;
+}
+
+.mr-btn:hover {
+  color: var(--mr-text);
+  border-color: var(--mr-border-strong);
+  background: var(--mr-surface-3);
+}
+
+.mr-btn[aria-pressed='true'],
+.mr-btn.is-active {
+  color: var(--mr-accent);
+  background: var(--mr-accent-muted);
+  border-color: var(--mr-accent-border);
+}
+
+.mr-btn-primary {
+  color: var(--mr-text);
+  background: var(--mr-accent-muted);
+  border-color: var(--mr-accent-border);
+}
+
+.mr-btn-primary:hover {
+  background: var(--mr-accent);
+  color: var(--mr-text-inverse);
+  border-color: var(--mr-accent);
+}
+
+/* ── Inputs ──────────────────────────────────────────────────────────────── */
+
+.mr-input {
+  width: 100%;
+  padding: 9px 12px 9px 34px;
+  font-family: inherit;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text);
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  transition: border-color var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-input::placeholder {
+  color: var(--mr-text-subtle);
+}
+
+.mr-input:focus {
+  outline: none;
+  border-color: var(--mr-accent-border);
+  box-shadow: 0 0 0 3px var(--mr-accent-muted);
+}
+
+.mr-select {
+  padding: 7px 28px 7px 10px;
+  font-family: inherit;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text-muted);
+  background: var(--mr-surface-2);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  cursor: pointer;
+  appearance: none;
+  background-image:
+    linear-gradient(45deg, transparent 50%, currentColor 50%),
+    linear-gradient(135deg, currentColor 50%, transparent 50%);
+  background-position:
+    calc(100% - 14px) 50%,
+    calc(100% - 9px) 50%;
+  background-size:
+    5px 5px,
+    5px 5px;
+  background-repeat: no-repeat;
+}
+
+.mr-select:hover {
+  color: var(--mr-text);
+  border-color: var(--mr-border-strong);
+}
+
+/* ── Chips ───────────────────────────────────────────────────────────────── */
+
+.mr-chip {
+  padding: 4px 10px;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-muted);
+  background: transparent;
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-full);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-chip:hover {
+  color: var(--mr-text);
+  border-color: var(--mr-border-strong);
+}
+
+.mr-chip[aria-pressed='true'] {
+  color: var(--mr-accent);
+  background: var(--mr-accent-muted);
+  border-color: var(--mr-accent-border);
+}
+
+.mr-chip-count {
+  margin-left: 5px;
+  font-family: var(--mr-font-mono);
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+
+/* ── Market table ────────────────────────────────────────────────────────── */
+
+/* The table scrolls horizontally only where it has to.
+   `overflow-x: auto` makes the element a scroll container, and a scroll
+   container becomes the containing block for `position: sticky` — which
+   silently breaks the sticky header. So on wide screens, where the table fits
+   and the sticky header actually matters, there is no scroll container at all. */
+.mr-table-scroll {
+  overflow-x: visible;
+}
+
+@media (max-width: 900px) {
+  .mr-table-scroll {
+    overflow-x: auto;
+  }
+}
+
+.mr-table {
+  width: 100%;
+  /* `separate` rather than `collapse`: with collapsed borders, sticky
+     positioning on `th` is unreliable — the cells detach from the header row
+     and drift over the first body row. `border-spacing: 0` keeps the collapsed
+     look. */
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: var(--mr-text-sm);
+}
+
+.mr-table thead th {
+  position: sticky;
+  /* Must match the site header's height exactly, or rows peek through the gap
+     between the two sticky elements. */
+  top: var(--mr-header-height);
+  z-index: 10;
+  padding: 9px 12px;
+  text-align: left;
+  font-size: var(--mr-text-2xs);
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mr-text-subtle);
+  background: var(--mr-bg);
+  border-bottom: 1px solid var(--mr-border);
+  white-space: nowrap;
+}
+
+.mr-table th.is-numeric,
+.mr-table td.is-numeric {
+  text-align: right;
+}
+
+.mr-table tbody tr {
+  transition: background var(--mr-duration-fast) var(--mr-ease);
+}
+
+/* Separators go on cells: with `border-collapse: separate`, a border on `tr`
+   is not painted. */
+.mr-table tbody td {
+  border-bottom: 1px solid var(--mr-border-subtle);
+}
+
+.mr-table tbody tr:hover {
+  background: var(--mr-surface-1);
+}
+
+.mr-table tbody td {
+  padding: 10px 12px;
+  vertical-align: middle;
+}
+
+.mr-row-link {
+  color: inherit;
+  text-decoration: none;
+  display: block;
+}
+
+.mr-sort-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mr-sort-btn:hover {
+  color: var(--mr-text);
+}
+
+.mr-sort-btn[data-active='true'] {
+  color: var(--mr-accent);
+}
+
+/* ── Grid helpers ────────────────────────────────────────────────────────── */
+
+.mr-stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 1px;
+  background: var(--mr-border);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+  overflow: hidden;
+}
+
+.mr-stat-cell {
+  background: var(--mr-surface-1);
+  padding: 14px 16px;
+}
+
+.mr-grid-2 {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 1000px) {
+  .mr-grid-2 {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .mr-header-inner,
+  .mr-footer-inner,
+  .mr-container {
+    padding: 0 16px;
+  }
+
+  .mr-brand-sub,
+  .mr-hide-sm {
+    display: none;
+  }
+
+  .mr-header-inner {
+    gap: 16px;
+  }
+}

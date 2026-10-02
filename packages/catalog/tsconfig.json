@@ -1,0 +1,5 @@
+{
+  "extends": "@marketroom/config/tsconfig.base.json",
+  "include": ["src", "scripts"],
+  "compilerOptions": { "noEmit": true }
+}

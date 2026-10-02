@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "marketroom-web",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@marketroom/web", "dev", "--port", "3077"],
+      "port": 3077,
+      "autoPort": false
+    }
+  ]
+}
