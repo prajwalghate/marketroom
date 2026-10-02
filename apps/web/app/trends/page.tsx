@@ -43,8 +43,18 @@ export default async function TrendsPage() {
     return [{ view, change: change.fraction }];
   });
 
-  const gainers = [...scored].sort((a, b) => b.change - a.change).slice(0, 10);
-  const losers = [...scored].sort((a, b) => a.change - b.change).slice(0, 10);
+  // Filter by sign before taking the top N, rather than slicing a single sorted
+  // list from both ends. Two things go wrong otherwise: on a broadly red day
+  // "Top gainers" fills with losers, and whenever fewer than 20 markets are
+  // quoted the same ticker appears in both panels.
+  const gainers = scored
+    .filter((s) => s.change > 0)
+    .sort((a, b) => b.change - a.change)
+    .slice(0, 10);
+  const losers = scored
+    .filter((s) => s.change < 0)
+    .sort((a, b) => a.change - b.change)
+    .slice(0, 10);
 
   const byVolume = [...snapshot.assets]
     .sort((a, b) => (aggregateVolume24h(b) ?? 0) - (aggregateVolume24h(a) ?? 0))
@@ -61,6 +71,8 @@ export default async function TrendsPage() {
     .slice(0, 8);
 
   const sectors = aggregateBySector(scored);
+  // Hoisted out of the row: it was recomputed over the whole list for every bar.
+  const sectorMax = Math.max(0, ...sectors.map((sector) => Math.abs(sector.average)));
 
   return (
     <div className="mr-container">
@@ -88,24 +100,28 @@ export default async function TrendsPage() {
       >
         <section>
           <SectionTitle>Top gainers</SectionTitle>
-          <MoverList items={gainers} />
+          <MoverList items={gainers} emptyLabel="No market is up over 24 hours." />
         </section>
 
         <section>
           <SectionTitle>Top losers</SectionTitle>
-          <MoverList items={losers} />
+          <MoverList items={losers} emptyLabel="No market is down over 24 hours." />
         </section>
       </div>
 
       <section style={{ marginBottom: 30 }}>
-        <SectionTitle>Sector performance · 24h</SectionTitle>
+        <SectionTitle
+          action={
+            <span style={{ fontSize: 'var(--mr-text-2xs)', color: 'var(--mr-text-subtle)' }}>
+              mean change per sector · markets counted
+            </span>
+          }
+        >
+          Sector performance · 24h
+        </SectionTitle>
         <div style={{ display: 'grid', gap: 5 }}>
           {sectors.map((sector) => (
-            <SectorBar
-              key={sector.name}
-              {...sector}
-              max={Math.max(...sectors.map((s) => Math.abs(s.average)))}
-            />
+            <SectorBar key={sector.name} {...sector} max={sectorMax} />
           ))}
         </div>
       </section>
@@ -119,31 +135,13 @@ export default async function TrendsPage() {
       >
         <section>
           <SectionTitle>Most traded</SectionTitle>
-          <div
-            style={{
-              display: 'grid',
-              gap: 1,
-              background: 'var(--mr-border)',
-              border: '1px solid var(--mr-border)',
-              borderRadius: 'var(--mr-radius-lg)',
-              overflow: 'hidden',
-            }}
-          >
+          <div className="mr-list">
             {byVolume.map((view) => (
               <Link
                 key={view.asset.id}
                 href={`/market/${view.asset.id}`}
                 prefetch
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  gap: 12,
-                  padding: '9px 13px',
-                  background: 'var(--mr-surface-1)',
-                  textDecoration: 'none',
-                  color: 'inherit',
-                }}
+                className="mr-list-row"
               >
                 <span className="mr-num" style={{ fontWeight: 500 }}>
                   {view.asset.symbol}
@@ -174,31 +172,13 @@ export default async function TrendsPage() {
               No assets are currently quoted on more than one venue.
             </p>
           ) : (
-            <div
-              style={{
-                display: 'grid',
-                gap: 1,
-                background: 'var(--mr-border)',
-                border: '1px solid var(--mr-border)',
-                borderRadius: 'var(--mr-radius-lg)',
-                overflow: 'hidden',
-              }}
-            >
+            <div className="mr-list">
               {dislocations.map(({ view, spread }) => (
                 <Link
                   key={view.asset.id}
                   href={`/market/${view.asset.id}`}
                   prefetch
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    gap: 12,
-                    padding: '9px 13px',
-                    background: 'var(--mr-surface-1)',
-                    textDecoration: 'none',
-                    color: 'inherit',
-                  }}
+                  className="mr-list-row"
                 >
                   <span className="mr-num" style={{ fontWeight: 500 }}>
                     {view.asset.symbol}
@@ -216,46 +196,50 @@ export default async function TrendsPage() {
   );
 }
 
-function MoverList({ items }: { items: Scored[] }) {
+function MoverList({ items, emptyLabel }: { items: Scored[]; emptyLabel: string }) {
+  // Partitioning by sign means either list can legitimately be empty on a
+  // one-sided day, so it needs to say so rather than render an empty box.
+  if (items.length === 0) {
+    return (
+      <p
+        style={{
+          margin: 0,
+          padding: '18px 13px',
+          fontSize: 'var(--mr-text-sm)',
+          color: 'var(--mr-text-subtle)',
+          border: '1px dashed var(--mr-border)',
+          borderRadius: 'var(--mr-radius-lg)',
+        }}
+      >
+        {emptyLabel}
+      </p>
+    );
+  }
+
   return (
-    <div
-      style={{
-        display: 'grid',
-        gap: 1,
-        background: 'var(--mr-border)',
-        border: '1px solid var(--mr-border)',
-        borderRadius: 'var(--mr-radius-lg)',
-        overflow: 'hidden',
-      }}
-    >
+    <div className="mr-list">
       {items.map(({ view, change }) => (
         <Link
           key={view.asset.id}
           href={`/market/${view.asset.id}`}
           prefetch
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            gap: 12,
-            padding: '9px 13px',
-            background: 'var(--mr-surface-1)',
-            textDecoration: 'none',
-            color: 'inherit',
-          }}
+          className="mr-list-row"
         >
-          <span style={{ minWidth: 0, display: 'flex', alignItems: 'baseline', gap: 8 }}>
-            <span className="mr-num" style={{ fontWeight: 500 }}>
+          <span style={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'baseline', gap: 8 }}>
+            <span className="mr-num" style={{ fontWeight: 500, flexShrink: 0 }}>
               {view.asset.symbol}
             </span>
+            {/* Shrink-to-fit rather than a hard 150px cap, which truncated
+                "Western Digital Corpora…" on a 1440px screen with room to
+                spare, and still overflowed narrower ones. */}
             <span
               style={{
+                minWidth: 0,
                 fontSize: 'var(--mr-text-xs)',
                 color: 'var(--mr-text-subtle)',
                 overflow: 'hidden',
                 textOverflow: 'ellipsis',
                 whiteSpace: 'nowrap',
-                maxWidth: 150,
               }}
             >
               {view.asset.name}
@@ -299,17 +283,26 @@ function SectorBar({ name, average, count, max }: SectorStat & { max: number }) 
   const width = max === 0 ? 0 : (Math.abs(average) / max) * 50;
 
   return (
-    <div
-      style={{
-        display: 'grid',
-        gridTemplateColumns: '180px 1fr 72px',
-        alignItems: 'center',
-        gap: 12,
-      }}
-    >
-      <span style={{ fontSize: 'var(--mr-text-xs)', color: 'var(--mr-text-muted)' }}>
+    /* Grid lives in CSS so the label column can give way to the bar track on
+       narrow screens — at 375px a fixed 180px label left the track 67px wide. */
+    <div className="mr-sector-row">
+      <span
+        style={{
+          fontSize: 'var(--mr-text-xs)',
+          color: 'var(--mr-text-muted)',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap',
+        }}
+      >
         {name}
-        <span className="mr-num" style={{ color: 'var(--mr-text-subtle)', marginLeft: 6 }}>
+        {/* The sample size. A sector averaged over one asset should not read as
+            authoritatively as one averaged over forty-seven. */}
+        <span
+          className="mr-num"
+          style={{ color: 'var(--mr-text-subtle)', marginLeft: 6 }}
+          title={`${count} ${count === 1 ? 'market' : 'markets'}`}
+        >
           {count}
         </span>
       </span>
@@ -347,15 +340,12 @@ function SectorBar({ name, average, count, max }: SectorStat & { max: number }) 
         />
       </div>
 
-      <span
-        className="mr-num"
-        style={{
-          fontSize: 'var(--mr-text-xs)',
-          textAlign: 'right',
-          color: positive ? 'var(--mr-up)' : 'var(--mr-down)',
-        }}
-      >
-        {formatPercent(average)}
+      {/* PriceChange rather than a hand-coloured number: it is the one place
+          that owns sign + arrow + colour together, so direction is never
+          carried by hue alone, and the sector figures match every other
+          percentage in the product. */}
+      <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <PriceChange fraction={average} size="sm" />
       </span>
     </div>
   );

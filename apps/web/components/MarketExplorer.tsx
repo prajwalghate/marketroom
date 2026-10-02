@@ -49,7 +49,11 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
 
   const sectorOptions = useMemo(() => sectorFacets(assets), [assets]);
   const classOptions = useMemo(() => assetClassFacets(assets), [assets]);
-  const countryOptions = useMemo(() => countryFacets(assets), [assets]);
+
+  // A search re-orders by relevance regardless of the chosen sort. That has to
+  // be the *same* value the select and the table headers render, or the UI
+  // claims one ordering while showing another.
+  const effectiveSort: SortKey = deferredQuery.trim() && sort === 'volume' ? 'relevance' : sort;
 
   const results = useMemo(
     () =>
@@ -62,10 +66,14 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
           venues,
           multiVenueOnly,
         },
-        sort: deferredQuery.trim() && sort === 'volume' ? 'relevance' : sort,
+        sort: effectiveSort,
       }),
-    [assets, deferredQuery, sectors, assetClasses, venues, multiVenueOnly, sort],
+    [assets, deferredQuery, sectors, assetClasses, venues, multiVenueOnly, effectiveSort],
   );
+
+  // Counted over the results, not the universe: the old version read the facet
+  // off `assets`, so it said "13 countries" even when nothing matched.
+  const countryOptions = useMemo(() => countryFacets(results), [results]);
 
   const toggle = <T,>(list: T[], value: T, set: (next: T[]) => void) => {
     set(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
@@ -119,17 +127,22 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
           />
         </div>
 
+        {/* `relevance` is offered only while it is reachable — it is what a
+            search actually applies, and hiding it made the select display
+            "24h volume" over relevance-ordered rows. */}
         <select
           className="mr-select"
-          value={sort}
+          value={effectiveSort}
           onChange={(event) => setSort(event.target.value as SortKey)}
           aria-label="Sort markets"
         >
-          {SORT_KEYS.filter((key) => key !== 'relevance').map((key) => (
-            <option key={key} value={key}>
-              {SORT_LABELS[key]}
-            </option>
-          ))}
+          {SORT_KEYS.filter((key) => key !== 'relevance' || effectiveSort === 'relevance').map(
+            (key) => (
+              <option key={key} value={key}>
+                {SORT_LABELS[key]}
+              </option>
+            ),
+          )}
         </select>
 
         {VENUE_OPTIONS.map((venue) => (
@@ -162,17 +175,26 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
       </div>
 
       {/* ── Asset class ───────────────────────────────────────────────── */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+      {/* Both chip rows looked identical, so there was nothing to tell a reader
+          that one filters by instrument type and the other by sector. The
+          labels name the dimension for sighted and screen-reader users alike. */}
+      <div className="mr-filter-group" role="group" aria-label="Filter by asset class">
+        <span className="mr-filter-label" aria-hidden="true">
+          Class
+        </span>
         {classOptions.map((facet) => (
           <button
             key={facet.value}
             type="button"
             className="mr-chip"
             aria-pressed={assetClasses.includes(facet.value as AssetClass)}
+            aria-label={`${facet.value}, ${facet.count} markets`}
             onClick={() => toggle(assetClasses, facet.value as AssetClass, setAssetClasses)}
           >
-            {facet.value}
-            <span className="mr-chip-count">{facet.count}</span>
+            <span aria-hidden="true">{facet.value}</span>
+            <span className="mr-chip-count" aria-hidden="true">
+              {facet.count}
+            </span>
           </button>
         ))}
       </div>
@@ -180,17 +202,28 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
       {/* ── Sector ────────────────────────────────────────────────────── */}
       {/* Top-level sectors only. The reference exposed ~50 freeform chips,
           which is a wall of text rather than a filter. */}
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 18 }}>
+      <div
+        className="mr-filter-group"
+        role="group"
+        aria-label="Filter by sector"
+        style={{ marginTop: 8, marginBottom: 18 }}
+      >
+        <span className="mr-filter-label" aria-hidden="true">
+          Sector
+        </span>
         {sectorOptions.slice(0, 12).map((facet) => (
           <button
             key={facet.value}
             type="button"
             className="mr-chip"
             aria-pressed={sectors.includes(facet.value)}
+            aria-label={`${facet.value}, ${facet.count} markets`}
             onClick={() => toggle(sectors, facet.value, setSectors)}
           >
-            {facet.value}
-            <span className="mr-chip-count">{facet.count}</span>
+            <span aria-hidden="true">{facet.value}</span>
+            <span className="mr-chip-count" aria-hidden="true">
+              {facet.count}
+            </span>
           </button>
         ))}
       </div>
@@ -202,18 +235,36 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
           marginBottom: 8,
         }}
         aria-live="polite"
+        aria-atomic="true"
       >
-        {results.length} of {assets.length} markets
-        {countryOptions.length > 0 && ` · ${countryOptions.length} countries`}
+        {results.length === assets.length
+          ? `${assets.length} markets`
+          : `${results.length} of ${assets.length} markets`}
+        {countryOptions.length > 0 &&
+          ` · ${countryOptions.length} ${countryOptions.length === 1 ? 'country' : 'countries'}`}
       </div>
 
       {results.length === 0 ? (
         <EmptyState
           title="No markets match"
-          hint="Try a different ticker, or clear the active filters."
+          hint={
+            query.trim()
+              ? `Nothing in the index matches “${query.trim()}”.`
+              : 'The active filters exclude every market.'
+          }
+          action={
+            <button type="button" className="mr-btn" onClick={reset}>
+              Clear all filters
+            </button>
+          }
         />
       ) : (
-        <MarketTable assets={results} sparklines={sparklines} sort={sort} onSortChange={setSort} />
+        <MarketTable
+          assets={results}
+          sparklines={sparklines}
+          sort={effectiveSort}
+          onSortChange={setSort}
+        />
       )}
     </>
   );

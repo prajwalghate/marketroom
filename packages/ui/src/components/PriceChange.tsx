@@ -1,6 +1,7 @@
 import type { Direction } from '@marketroom/core';
 import { formatPercent, formatPrice } from '@marketroom/core';
 import clsx from 'clsx';
+import { VisuallyHidden } from './VisuallyHidden';
 
 /**
  * Price change display.
@@ -9,6 +10,11 @@ import clsx from 'clsx';
  * ways — colour, an explicit `+`/`−` sign, and an arrow glyph. Roughly 8% of
  * men have red/green colour deficiency, so colour alone would make the single
  * most important number in a finance UI unreadable for them.
+ *
+ * The sign comes from `formatPercent`, which is also where `null` becomes an em
+ * dash rather than `NaN%`. The arrow is `aria-hidden` (a screen reader reading
+ * "black up-pointing triangle" is noise) and the direction is re-stated as a
+ * word for assistive tech instead.
  */
 
 const DIRECTION_COLOR: Record<Direction, string> = {
@@ -46,9 +52,13 @@ export function PriceChange({
   size = 'md',
   className,
 }: PriceChangeProps) {
-  const resolved: Direction =
-    direction ??
-    (fraction === null ? 'flat' : fraction > 0 ? 'up' : fraction < 0 ? 'down' : 'flat');
+  const missing = fraction === null || !Number.isFinite(fraction);
+
+  // A missing value is always neutral, even when a `direction` was passed. An
+  // em dash tinted green claims a direction we do not have.
+  const resolved: Direction = missing
+    ? 'flat'
+    : (direction ?? (fraction > 0 ? 'up' : fraction < 0 ? 'down' : 'flat'));
 
   const fontSize =
     size === 'sm' ? 'var(--mr-text-xs)' : size === 'lg' ? 'var(--mr-text-lg)' : 'var(--mr-text-sm)';
@@ -63,16 +73,20 @@ export function PriceChange({
         alignItems: 'center',
         gap: '0.25em',
         fontWeight: 500,
+        // Without this the arrow can wrap away from its number in a narrow
+        // table cell, which inverts the meaning of the row above it.
+        whiteSpace: 'nowrap',
       }}
     >
-      {showArrow && fraction !== null && (
+      {showArrow && !missing && (
         <span aria-hidden="true" style={{ fontSize: '0.75em' }}>
           {ARROW[resolved]}
         </span>
       )}
-      {formatPercent(fraction)}
-      {/* Screen readers get the direction in words, not a glyph. */}
-      {fraction !== null && <span className="sr-only"> {LABEL[resolved]}</span>}
+      {formatPercent(missing ? null : fraction)}
+      {/* Screen readers get words, not a glyph — and "no data" rather than an
+          em dash, which most screen readers skip silently. */}
+      <VisuallyHidden>{missing ? ' no data' : ` ${LABEL[resolved]}`}</VisuallyHidden>
     </span>
   );
 }
@@ -99,6 +113,7 @@ export function Price({ value, size = 'md', muted, className }: PriceProps) {
         fontSize,
         color: muted ? 'var(--mr-text-muted)' : 'var(--mr-text)',
         fontWeight: size === 'xl' ? 600 : 500,
+        whiteSpace: 'nowrap',
       }}
     >
       {formatPrice(value)}

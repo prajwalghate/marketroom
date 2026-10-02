@@ -32,8 +32,11 @@ export function ThemeToggle() {
   return (
     <button
       type="button"
-      className="mr-btn"
+      className="mr-btn mr-btn-icon"
       onClick={toggle}
+      /* A single glyph gives the button no width of its own, so `mr-btn-icon`
+         supplies the hit area. The label states the action, not the state —
+         `aria-pressed` would leave "pressed" ambiguous between the two themes. */
       aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
       title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
     >

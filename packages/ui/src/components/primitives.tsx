@@ -1,6 +1,8 @@
 import type { InstrumentKind, VenueId } from '@marketroom/core';
 import clsx from 'clsx';
 import type { CSSProperties, ReactNode } from 'react';
+import { Tooltip } from './Tooltip';
+import { VisuallyHidden } from './VisuallyHidden';
 
 /**
  * Shared presentational primitives.
@@ -9,6 +11,11 @@ import type { CSSProperties, ReactNode } from 'react';
  * these stay portable and so the token contract is visible at the point of use.
  * No component here names a raw colour — every value resolves to a `--mr-*`
  * token from `tokens.css`.
+ *
+ * The one exception is `Surface`, whose background and border go through custom
+ * properties instead. That is not stylistic: a CSS class can never override an
+ * inline `background`, so hover and active states for an interactive card are
+ * impossible unless the value is indirected through a variable.
  */
 
 // ---------------------------------------------------------------------------
@@ -18,23 +25,27 @@ import type { CSSProperties, ReactNode } from 'react';
 export interface SurfaceProps {
   children: ReactNode;
   level?: 1 | 2 | 3;
+  /**
+   * Adds hover, active and `:focus-within` states. Use when the card is a hit
+   * target — typically because it wraps a link. A Surface is a `<div>`, so it is
+   * never itself focusable; `:focus-within` is what makes the card agree with
+   * the focus ring of the link inside it.
+   */
   interactive?: boolean;
   className?: string;
   style?: CSSProperties;
 }
 
 export function Surface({ children, level = 1, interactive, className, style }: SurfaceProps) {
-  const background = `var(--mr-surface-${level})`;
   return (
     <div
-      className={clsx(className, interactive && 'mr-interactive')}
-      style={{
-        background,
-        border: '1px solid var(--mr-border)',
-        borderRadius: 'var(--mr-radius-lg)',
-        transition: `border-color var(--mr-duration) var(--mr-ease), background var(--mr-duration) var(--mr-ease)`,
-        ...style,
-      }}
+      className={clsx('mr-surface', interactive && 'mr-interactive', className)}
+      style={
+        {
+          '--mr-surface-bg': `var(--mr-surface-${level})`,
+          ...style,
+        } as CSSProperties
+      }
     >
       {children}
     </div>
@@ -63,6 +74,16 @@ export interface BadgeProps {
   children: ReactNode;
   tone?: BadgeTone;
   mono?: boolean;
+  /**
+   * Explanation of an abbreviated label.
+   *
+   * This stays a native `title` rather than a `<Tooltip>` on purpose: badges are
+   * routinely rendered *inside* a table-row link, and `<Tooltip>` adds a tab
+   * stop, which would nest interactive content inside interactive content. The
+   * text is also emitted visually-hidden, so keyboard and screen-reader users
+   * get it even though the native tooltip never reaches them. Where a badge is
+   * not inside a link, wrap it in `<Tooltip>` instead and leave this unset.
+   */
   title?: string;
   className?: string;
 }
@@ -79,6 +100,9 @@ export function Badge({ children, tone = 'neutral', mono, title, className }: Ba
         gap: '0.35em',
         padding: '2px 7px',
         fontSize: 'var(--mr-text-2xs)',
+        // Pinned so a badge is the same height whatever is inside it — a mono
+        // digit and a capital letter have different natural line boxes.
+        lineHeight: 1.45,
         fontWeight: 500,
         letterSpacing: '0.02em',
         color: palette.fg,
@@ -89,6 +113,7 @@ export function Badge({ children, tone = 'neutral', mono, title, className }: Ba
       }}
     >
       {children}
+      {title && <VisuallyHidden>{` — ${title}`}</VisuallyHidden>}
     </span>
   );
 }
@@ -102,11 +127,23 @@ const VENUE_META: Record<VenueId, { label: string; color: string }> = {
   solana: { label: 'Solana', color: 'var(--mr-venue-solana)' },
 };
 
+/**
+ * Which venue a listing came from.
+ *
+ * `compact` drops the label down to the dot alone, which is how the market
+ * table's Venues column fits. The dot is `aria-hidden` decoration, so compact
+ * mode has to supply the name some other way or the column is simply blank to a
+ * screen reader — hence the visually-hidden label. A 6px coloured circle is also
+ * invisible to a colour-blind user as an *identifier*, so the text is the real
+ * answer and the dot is the shorthand.
+ */
 export function VenueBadge({ venue, compact }: { venue: VenueId; compact?: boolean }) {
   const meta = VENUE_META[venue];
   return (
     <span
-      title={meta.label}
+      // Only in compact mode: when the label is visible, a tooltip repeating it
+      // is noise.
+      title={compact ? meta.label : undefined}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -126,7 +163,7 @@ export function VenueBadge({ venue, compact }: { venue: VenueId; compact?: boole
           flexShrink: 0,
         }}
       />
-      {!compact && meta.label}
+      {compact ? <VisuallyHidden>{meta.label}</VisuallyHidden> : meta.label}
     </span>
   );
 }
@@ -141,6 +178,12 @@ export function VenueBadge({ venue, compact }: { venue: VenueId; compact?: boole
  * A perp and a custody-backed token can share a ticker and be completely
  * different products. Labelling the instrument everywhere a price appears is a
  * correctness requirement, not decoration.
+ *
+ * `PERP` and `TOKEN` are abbreviations of a legal distinction, so the expansion
+ * has to be reachable — not just hoverable on a desktop. It goes through
+ * `<Tooltip>`, which opens on keyboard focus and is announced via
+ * `aria-describedby`. That makes this badge focusable, so do NOT place it inside
+ * a link or button; use `<Badge title>` there instead.
  */
 const KIND_LABELS: Record<InstrumentKind, { short: string; title: string }> = {
   perpetual: {
@@ -154,12 +197,26 @@ const KIND_LABELS: Record<InstrumentKind, { short: string; title: string }> = {
   spot: { short: 'SPOT', title: 'Spot market.' },
 };
 
-export function InstrumentBadge({ kind }: { kind: InstrumentKind }) {
+export function InstrumentBadge({
+  kind,
+  align = 'end',
+}: {
+  kind: InstrumentKind;
+  /**
+   * Defaults to `end` because this badge's canonical placement is the
+   * right-hand side of a venue card header. A centred bubble there overhangs a
+   * narrow viewport by ~72px, which is unreadable even once the page stops
+   * scrolling sideways.
+   */
+  align?: 'center' | 'start' | 'end';
+}) {
   const meta = KIND_LABELS[kind];
   return (
-    <Badge tone={kind === 'perpetual' ? 'warn' : 'neutral'} mono title={meta.title}>
-      {meta.short}
-    </Badge>
+    <Tooltip content={meta.title} align={align}>
+      <Badge tone={kind === 'perpetual' ? 'warn' : 'neutral'} mono>
+        {meta.short}
+      </Badge>
+    </Tooltip>
   );
 }
 
@@ -167,33 +224,53 @@ export function InstrumentBadge({ kind }: { kind: InstrumentKind }) {
 // Stat
 // ---------------------------------------------------------------------------
 
+/**
+ * A labelled figure.
+ *
+ * Rendered as a one-row `<dl>`: a label and its value are a description pair,
+ * and marking them as two anonymous `<div>`s loses the association entirely for
+ * assistive tech.
+ */
 export interface StatProps {
   label: string;
   value: ReactNode;
+  /** Explanation of how the figure is derived. Shown as a tooltip on the label. */
   hint?: string;
   align?: 'left' | 'right';
 }
 
 export function Stat({ label, value, hint, align = 'left' }: StatProps) {
+  const labelStyle: CSSProperties = {
+    fontSize: 'var(--mr-text-2xs)',
+    color: 'var(--mr-text-subtle)',
+    textTransform: 'uppercase',
+    letterSpacing: '0.06em',
+    marginBottom: 3,
+    whiteSpace: 'nowrap',
+  };
+
   return (
-    <div style={{ textAlign: align, minWidth: 0 }}>
-      <div
+    <dl style={{ margin: 0, textAlign: align, minWidth: 0 }}>
+      <dt style={labelStyle}>
+        {hint ? (
+          <Tooltip content={hint} underline>
+            {label}
+          </Tooltip>
+        ) : (
+          label
+        )}
+      </dt>
+      <dd
         style={{
-          fontSize: 'var(--mr-text-2xs)',
-          color: 'var(--mr-text-subtle)',
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          marginBottom: 3,
-          whiteSpace: 'nowrap',
+          margin: 0,
+          fontSize: 'var(--mr-text-sm)',
+          color: 'var(--mr-text)',
+          fontWeight: 500,
         }}
-        title={hint}
       >
-        {label}
-      </div>
-      <div style={{ fontSize: 'var(--mr-text-sm)', color: 'var(--mr-text)', fontWeight: 500 }}>
         {value}
-      </div>
-    </div>
+      </dd>
+    </dl>
   );
 }
 
@@ -201,7 +278,28 @@ export function Stat({ label, value, hint, align = 'left' }: StatProps) {
 // Section heading
 // ---------------------------------------------------------------------------
 
-export function SectionTitle({ children, action }: { children: ReactNode; action?: ReactNode }) {
+/**
+ * A section's heading, plus an optional right-aligned slot for metadata.
+ *
+ * `level` exists because heading order is a document-structure requirement, not
+ * a style: an `<h2>` nested under another `<h2>`'s section skips a level and
+ * breaks heading navigation. Default `2`, since every page here has exactly one
+ * `<h1>`.
+ */
+export function SectionTitle({
+  children,
+  action,
+  level = 2,
+  id,
+}: {
+  children: ReactNode;
+  action?: ReactNode;
+  level?: 2 | 3 | 4;
+  /** Set when a `<section>` points at this heading via `aria-labelledby`. */
+  id?: string;
+}) {
+  const Heading = `h${level}` as 'h2' | 'h3' | 'h4';
+
   return (
     <div
       style={{
@@ -212,7 +310,8 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
         marginBottom: 12,
       }}
     >
-      <h2
+      <Heading
+        id={id}
         style={{
           margin: 0,
           fontSize: 'var(--mr-text-xs)',
@@ -223,7 +322,7 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
         }}
       >
         {children}
-      </h2>
+      </Heading>
       {action}
     </div>
   );
@@ -233,7 +332,28 @@ export function SectionTitle({ children, action }: { children: ReactNode; action
 // Empty state
 // ---------------------------------------------------------------------------
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+/**
+ * Nothing to show, and why — and, where there is one, the way out.
+ *
+ * Paragraphs rather than `<div>`s, so the text is traversable as text. No live
+ * region: the places that swap content in and out — the market explorer's
+ * filters — already announce the result count through their own `aria-live`, and
+ * two announcements for one action is worse than one.
+ *
+ * `action` exists because a dead end the user cannot leave is not an empty
+ * state, it is a trap. If the emptiness is the result of something the user did
+ * — a filter, a search — pass the control that undoes it.
+ */
+export function EmptyState({
+  title,
+  hint,
+  action,
+}: {
+  title: string;
+  hint?: string;
+  /** The way out: a "clear filters" button, a link back. */
+  action?: ReactNode;
+}) {
   return (
     <div
       style={{
@@ -244,10 +364,13 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
         borderRadius: 'var(--mr-radius-lg)',
       }}
     >
-      <div style={{ fontSize: 'var(--mr-text-md)', color: 'var(--mr-text)', marginBottom: 6 }}>
-        {title}
-      </div>
-      {hint && <div style={{ fontSize: 'var(--mr-text-sm)' }}>{hint}</div>}
+      <p style={{ margin: 0, fontSize: 'var(--mr-text-md)', color: 'var(--mr-text)' }}>{title}</p>
+      {hint && (
+        <p style={{ margin: action ? '6px 0 18px' : '6px 0 0', fontSize: 'var(--mr-text-sm)' }}>
+          {hint}
+        </p>
+      )}
+      {action}
     </div>
   );
 }

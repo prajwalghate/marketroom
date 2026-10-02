@@ -101,6 +101,30 @@ export default tseslint.config(
     },
   },
 
+  // ── No raw colour outside tokens.css ────────────────────────────────────
+  // tokens.css and the proposal both claim this is enforced; until now it was
+  // not. Every colour must resolve to a `--mr-*` token, or the design system is
+  // a suggestion rather than a contract.
+  {
+    files: ['packages/ui/**/*.{ts,tsx}', 'apps/web/**/*.{ts,tsx}'],
+    rules: {
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector:
+            "Literal[value=/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/]",
+          message:
+            'Raw colour literal. Use a var(--mr-*) token from packages/ui/src/tokens.css.',
+        },
+        {
+          selector: "Literal[value=/^(?:rgb|rgba|hsl|hsla)\\(/]",
+          message:
+            'Raw colour literal. Use a var(--mr-*) token from packages/ui/src/tokens.css.',
+        },
+      ],
+    },
+  },
+
   // ── web: only adapters may talk to the network. ─────────────────────────
   {
     files: ['apps/web/**/*.{ts,tsx}'],

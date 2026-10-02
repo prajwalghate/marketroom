@@ -10,7 +10,8 @@
     "./tokens.css": "./src/tokens.css"
   },
   "scripts": {
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "contrast": "node scripts/contrast.mjs"
   },
   "dependencies": {
     "@marketroom/core": "workspace:*",

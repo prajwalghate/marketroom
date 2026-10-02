@@ -66,7 +66,14 @@ export function VenueComparison({ view }: { view: AssetView }) {
           return (
             <div
               key={listing.id}
+              /* A column so the rights row and CTA can be pushed to the bottom:
+                 a perp lists funding and leverage where a token lists holders
+                 and an issuer, so the two cards' metric blocks are different
+                 heights and the Trade buttons would otherwise sit at different
+                 vertical positions — which makes them hard to compare. */
               style={{
+                display: 'flex',
+                flexDirection: 'column',
                 background: 'var(--mr-surface-1)',
                 border: '1px solid var(--mr-border)',
                 borderRadius: 'var(--mr-radius-lg)',
@@ -131,27 +138,55 @@ export function VenueComparison({ view }: { view: AssetView }) {
 
               {/* Holder rights — the substantive difference between a perp and
                   a custody-backed token, and the reason this product exists. */}
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginBottom: 12 }}>
-                {RIGHTS.map((right) => (
-                  <Badge key={right.key} tone={listing.rights[right.key] ? 'up' : 'neutral'}>
-                    {listing.rights[right.key] ? '✓' : '✕'} {right.label}
-                  </Badge>
-                ))}
-              </div>
+              <ul
+                style={{
+                  margin: '0 0 12px',
+                  padding: 0,
+                  listStyle: 'none',
+                  display: 'flex',
+                  flexWrap: 'wrap',
+                  gap: 5,
+                }}
+              >
+                {RIGHTS.map((right) => {
+                  const granted = listing.rights[right.key];
+                  return (
+                    <li key={right.key}>
+                      <Badge tone={granted ? 'up' : 'neutral'}>
+                        {/* A bare ✓/✕ is read aloud as "check mark"/"multiply"
+                            or skipped entirely, which inverts the meaning of
+                            the most consequential labels on the page. */}
+                        <span aria-hidden="true">{granted ? '✓' : '✕'}</span>
+                        <span className="sr-only">{granted ? 'Yes: ' : 'No: '}</span>
+                        {right.label}
+                      </Badge>
+                    </li>
+                  );
+                })}
+              </ul>
 
               <a
                 href={listing.tradeUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="mr-btn mr-btn-primary"
-                style={{ width: '100%', justifyContent: 'center', textDecoration: 'none' }}
+                style={{ width: '100%', textDecoration: 'none' }}
               >
-                Trade on {listing.venue === 'hyperliquid' ? 'trade[XYZ]' : 'Jupiter'} ↗
+                Trade on {listing.venue === 'hyperliquid' ? 'trade[XYZ]' : 'Jupiter'}
+                <span aria-hidden="true">↗</span>
+                {/* The glyph is the only signal that this leaves the site. */}
+                <span className="sr-only">(opens in a new tab)</span>
               </a>
 
+              {/* `margin-top: auto` absorbs the cards' height difference here,
+                  below the CTA rather than above it. The perp disclaimer always
+                  runs a line longer than the token one, so without this the two
+                  Trade buttons sat ~17px apart — the one pair of elements a
+                  reader is most likely to compare across the cards. */}
               <p
                 style={{
-                  margin: '9px 0 0',
+                  margin: 'auto 0 0',
+                  paddingTop: 9,
                   fontSize: 'var(--mr-text-2xs)',
                   color: 'var(--mr-text-subtle)',
                   lineHeight: 1.5,

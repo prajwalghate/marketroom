@@ -43,6 +43,11 @@ jobs:
       - name: Test
         run: pnpm test
 
+      # Measured WCAG contrast over the design tokens, both themes.
+      # A gate nobody runs is not a gate.
+      - name: Contrast gate
+        run: pnpm contrast
+
       - name: Build
         run: pnpm build
 

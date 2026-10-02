@@ -71,24 +71,36 @@ export default async function MarketsPage() {
         </p>
       </section>
 
-      <div className="mr-stat-row" style={{ marginBottom: 22 }}>
+      {/* A description list, not four pairs of divs: these are label/value
+          pairs, and the markup should say so — otherwise a screen reader reads
+          eight unrelated strings. */}
+      <dl className="mr-stat-row" style={{ margin: '0 0 22px' }}>
         <StatCell label="Markets indexed" value={String(snapshot.assets.length)} />
         <StatCell label="24h volume" value={formatCompactUsd(totalVolume)} />
-        <StatCell label="On 2+ venues" value={String(multiVenue)} />
-        <StatCell label="Venues live" value={`${venueCount} / ${snapshot.venues.length}`} />
-      </div>
+        <StatCell
+          label="On 2+ venues"
+          value={String(multiVenue)}
+          hint="Assets listed on both Hyperliquid and Solana — the cross-venue comparison set"
+        />
+        <StatCell
+          label="Venues live"
+          value={`${venueCount} / ${snapshot.venues.length}`}
+          hint="Venues currently responding to data requests"
+        />
+      </dl>
 
       <VenueHealth venues={snapshot.venues} />
 
+      <h2 className="sr-only">All markets</h2>
       <MarketExplorer assets={snapshot.assets} sparklines={sparklines} />
     </div>
   );
 }
 
-function StatCell({ label, value }: { label: string; value: string }) {
+function StatCell({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
     <div className="mr-stat-cell">
-      <div
+      <dt
         style={{
           fontSize: 'var(--mr-text-2xs)',
           color: 'var(--mr-text-subtle)',
@@ -96,15 +108,21 @@ function StatCell({ label, value }: { label: string; value: string }) {
           letterSpacing: '0.06em',
           marginBottom: 5,
         }}
+        title={hint}
       >
         {label}
-      </div>
-      <div
+      </dt>
+      <dd
         className="mr-num"
-        style={{ fontSize: 'var(--mr-text-xl)', fontWeight: 600, letterSpacing: '-0.02em' }}
+        style={{
+          margin: 0,
+          fontSize: 'var(--mr-text-xl)',
+          fontWeight: 600,
+          letterSpacing: '-0.02em',
+        }}
       >
         {value}
-      </div>
+      </dd>
     </div>
   );
 }

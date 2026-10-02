@@ -22,18 +22,6 @@
   top: 12px;
 }
 
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
-
 /* ── Layout shell ────────────────────────────────────────────────────────── */
 
 :root {
@@ -106,6 +94,9 @@
   display: flex;
   gap: 4px;
   margin-right: auto;
+  /* Without this the nav refuses to shrink below its content width and pushes
+     the theme toggle off the right edge of narrow viewports. */
+  min-width: 0;
 }
 
 .mr-nav-link {
@@ -114,6 +105,7 @@
   color: var(--mr-text-muted);
   text-decoration: none;
   border-radius: var(--mr-radius);
+  white-space: nowrap;
   transition:
     color var(--mr-duration-fast) var(--mr-ease),
     background var(--mr-duration-fast) var(--mr-ease);
@@ -124,9 +116,23 @@
   background: var(--mr-surface-2);
 }
 
+/* Current section. Without this nothing in the chrome says which route you are
+   on, so the nav reads as three equal, stateless links. */
+.mr-nav-link[aria-current='page'] {
+  color: var(--mr-text);
+  background: var(--mr-surface-2);
+}
+
 .mr-main {
   min-height: calc(100vh - var(--mr-header-height) - 140px);
   padding: 28px 0 64px;
+  /* `clip`, not `hidden`: `hidden` would make this a scroll container and break
+     the table's sticky header, which positions against the viewport. This stops
+     an absolutely-positioned overhang near the right edge — a tooltip bubble
+     opened on the last card in a row — from giving the whole page a horizontal
+     scrollbar on narrow screens. Such a bubble is already off-screen; clipping
+     it loses nothing and costs the reader no sideways scroll. */
+  overflow-x: clip;
 }
 
 .mr-footer {
@@ -148,12 +154,27 @@
   font-weight: 600;
 }
 
+/* Breadcrumb. The parent link read as plain text with no hover response, so
+   there was nothing to suggest it was the way back. */
+.mr-breadcrumb-link {
+  text-decoration: none;
+  transition: color var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-breadcrumb-link:hover {
+  color: var(--mr-text);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 /* ── Buttons ─────────────────────────────────────────────────────────────── */
 
 .mr-btn {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 6px;
+  min-height: 34px;
   padding: 6px 12px;
   font-family: inherit;
   font-size: var(--mr-text-sm);
@@ -162,7 +183,12 @@
   border: 1px solid var(--mr-border);
   border-radius: var(--mr-radius);
   cursor: pointer;
-  transition: all var(--mr-duration-fast) var(--mr-ease);
+  /* Named properties, not `all`: `all` also animates box-shadow, which made the
+     focus ring fade in over 90ms instead of appearing the instant you Tab. */
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    background var(--mr-duration-fast) var(--mr-ease),
+    border-color var(--mr-duration-fast) var(--mr-ease);
   white-space: nowrap;
 }
 
@@ -172,11 +198,24 @@
   background: var(--mr-surface-3);
 }
 
+/* A press needs to register before the navigation or re-render lands, otherwise
+   a click on a slow frame feels like it did nothing. */
+.mr-btn:active {
+  background: var(--mr-surface-raised);
+}
+
 .mr-btn[aria-pressed='true'],
 .mr-btn.is-active {
   color: var(--mr-accent);
   background: var(--mr-accent-muted);
   border-color: var(--mr-accent-border);
+}
+
+/* Icon-only buttons have no text to give them width, so they need an explicit
+   square hit area rather than whatever a single glyph happens to measure. */
+.mr-btn-icon {
+  min-width: 36px;
+  padding: 6px;
 }
 
 .mr-btn-primary {
@@ -209,10 +248,19 @@
   color: var(--mr-text-subtle);
 }
 
+/* Pointer focus gets the quiet border tint only. `outline` is deliberately left
+   alone here: the base `:focus-visible` rule in tokens.css owns the keyboard
+   ring, and an `outline: none` at this specificity would silently delete it —
+   leaving the one control a keyboard user lands on first with no indicator. */
 .mr-input:focus {
-  outline: none;
   border-color: var(--mr-accent-border);
   box-shadow: 0 0 0 3px var(--mr-accent-muted);
+}
+
+/* The search field clears its own value through the native `type="search"`
+   affordance; without a cursor it reads as decoration. */
+.mr-input::-webkit-search-cancel-button {
+  cursor: pointer;
 }
 
 .mr-select {
@@ -245,7 +293,10 @@
 /* ── Chips ───────────────────────────────────────────────────────────────── */
 
 .mr-chip {
+  display: inline-flex;
+  align-items: center;
   padding: 4px 10px;
+  font-family: inherit;
   font-size: var(--mr-text-xs);
   color: var(--mr-text-muted);
   background: transparent;
@@ -253,12 +304,21 @@
   border-radius: var(--mr-radius-full);
   cursor: pointer;
   white-space: nowrap;
-  transition: all var(--mr-duration-fast) var(--mr-ease);
+  /* See .mr-btn — `all` would animate the focus outline too. */
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    background var(--mr-duration-fast) var(--mr-ease),
+    border-color var(--mr-duration-fast) var(--mr-ease);
 }
 
 .mr-chip:hover {
   color: var(--mr-text);
   border-color: var(--mr-border-strong);
+  background: var(--mr-surface-2);
+}
+
+.mr-chip:active {
+  background: var(--mr-surface-3);
 }
 
 .mr-chip[aria-pressed='true'] {
@@ -267,11 +327,46 @@
   border-color: var(--mr-accent-border);
 }
 
+/* A selected chip must still respond to the cursor, otherwise it reads as
+   disabled once it is on. */
+.mr-chip[aria-pressed='true']:hover {
+  color: var(--mr-accent-hover);
+  background: var(--mr-accent-muted);
+  border-color: var(--mr-accent);
+}
+
 .mr-chip-count {
   margin-left: 5px;
   font-family: var(--mr-font-mono);
   font-size: var(--mr-text-2xs);
   color: var(--mr-text-subtle);
+}
+
+/* The two chip rows filter different dimensions (asset class, then sector) but
+   look identical. A quiet leading label is the difference between "a wall of
+   chips" and "two filters". */
+.mr-filter-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.mr-filter-group > .mr-filter-label {
+  flex-shrink: 0;
+  width: 76px;
+  font-size: var(--mr-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mr-text-subtle);
+}
+
+@media (max-width: 720px) {
+  /* At phone width 76px of label would eat a third of the row, so it becomes a
+     full-width caption above the chips instead. */
+  .mr-filter-group > .mr-filter-label {
+    width: 100%;
+  }
 }
 
 /* ── Market table ────────────────────────────────────────────────────────── */
@@ -285,7 +380,11 @@
   overflow-x: visible;
 }
 
-@media (max-width: 900px) {
+/* Only the 721–900px band needs to scroll: below 721px `.mr-hide-sm` drops the
+   table to three columns, which fit. Keeping the scroll container out of the
+   phone range is what lets the sticky header work there — a scroll container
+   would capture it. */
+@media (min-width: 721px) and (max-width: 900px) {
   .mr-table-scroll {
     overflow-x: auto;
   }
@@ -320,6 +419,18 @@
   white-space: nowrap;
 }
 
+/* `overflow-x: auto` above also computes `overflow-y` to `auto`, which makes
+   the scroller the sticky containing block. The site-header offset is then
+   measured from the scroller's top rather than the viewport's, so the header
+   row sat 57px down and covered the first data row. Inside a scroll container
+   it has to pin to the container instead. Must follow the rule above — same
+   specificity, so source order decides. */
+@media (min-width: 721px) and (max-width: 900px) {
+  .mr-table thead th {
+    top: 0;
+  }
+}
+
 .mr-table th.is-numeric,
 .mr-table td.is-numeric {
   text-align: right;
@@ -344,16 +455,61 @@
   vertical-align: middle;
 }
 
+/* The row link covers the whole row, not just the ticker cell.
+   `position: relative` on the `tr` plus a stretched `::after` gives a 1300px
+   target instead of a 354px one, while the accessibility tree still sees
+   exactly one link per row — which nesting links in every cell would not. */
+.mr-table tbody tr {
+  position: relative;
+  cursor: pointer;
+}
+
 .mr-row-link {
   color: inherit;
   text-decoration: none;
   display: block;
 }
 
+.mr-row-link::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+}
+
+/* Now that the hit area is the whole row, a ring around only the ticker cell
+   understates what Enter will activate. Guarded by @supports so the default
+   per-link ring survives anywhere `:has()` is missing — a focus indicator must
+   never depend on a progressive enhancement. */
+@supports selector(:has(*)) {
+  .mr-table tbody tr:has(.mr-row-link:focus-visible) {
+    outline: var(--mr-focus-width) solid var(--mr-accent);
+    outline-offset: calc(-1 * var(--mr-focus-width));
+  }
+
+  .mr-row-link:focus-visible {
+    outline: none;
+  }
+}
+
+/* The truncation width has to shrink on narrow screens, or the ticker column
+   alone forces the table wider than the viewport and pushes the 24h change —
+   the second most important number here — off the right edge. */
+.mr-market-name {
+  max-width: 230px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mr-sort-btn {
   background: none;
   border: none;
-  padding: 0;
+  /* Expanded into the cell's own padding: the label is a 17px-tall text run
+     inside a 36px cell, so without this most clicks on a column heading land in
+     the padding and do nothing. */
+  width: 100%;
+  padding: 9px 12px;
+  margin: -9px -12px;
   font: inherit;
   color: inherit;
   text-transform: inherit;
@@ -364,12 +520,36 @@
   gap: 4px;
 }
 
+.mr-table th.is-numeric .mr-sort-btn {
+  justify-content: flex-end;
+}
+
 .mr-sort-btn:hover {
   color: var(--mr-text);
 }
 
+/* `aria-sort` lives on the `th`; the button carries `data-active` instead. */
 .mr-sort-btn[data-active='true'] {
   color: var(--mr-accent);
+}
+
+@media (max-width: 720px) {
+  /* Three columns and 24px of horizontal padding per cell do not fit a phone.
+     Tightening the gutters and the truncation width removes the horizontal
+     scroll entirely, which also restores the sticky header. */
+  .mr-table thead th,
+  .mr-table tbody td {
+    padding: 12px 8px;
+  }
+
+  .mr-sort-btn {
+    padding: 9px 8px;
+    margin: -9px -8px;
+  }
+
+  .mr-market-name {
+    max-width: 40vw;
+  }
 }
 
 /* ── Grid helpers ────────────────────────────────────────────────────────── */
@@ -387,6 +567,64 @@
 .mr-stat-cell {
   background: var(--mr-surface-1);
   padding: 14px 16px;
+}
+
+/* ── Hairline-separated link lists (movers, most traded, dislocations) ────── */
+
+/* One shared surface with 1px grid gaps standing in for row separators, so the
+   list needs no per-row borders. */
+.mr-list {
+  display: grid;
+  gap: 1px;
+  background: var(--mr-border);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+  overflow: hidden;
+}
+
+.mr-list-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  /* 40px rather than the natural 37: these are the primary targets on /trends
+     and they are stacked, so an undersized row is easy to mis-tap. */
+  min-height: 40px;
+  padding: 9px 13px;
+  background: var(--mr-surface-1);
+  text-decoration: none;
+  color: inherit;
+  transition: background var(--mr-duration-fast) var(--mr-ease);
+}
+
+/* These rows had no hover state at all, so a list of links looked like a table
+   of static values. */
+.mr-list-row:hover {
+  background: var(--mr-surface-2);
+}
+
+/* The rows clip against the list's `overflow: hidden`, so the ring needs to sit
+   inside the row rather than outside it. */
+.mr-list-row:focus-visible {
+  outline-offset: calc(-1 * var(--mr-focus-width) - 1px);
+}
+
+/* ── Sector bars ─────────────────────────────────────────────────────────── */
+
+.mr-sector-row {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr) 72px;
+  align-items: center;
+  gap: 12px;
+}
+
+@media (max-width: 720px) {
+  /* A fixed 180px label column leaves the bar track 67px wide on a phone, which
+     turns the one chart on the page into a sliver. The label gives way first. */
+  .mr-sector-row {
+    grid-template-columns: minmax(0, 96px) minmax(0, 1fr) 58px;
+    gap: 8px;
+  }
 }
 
 .mr-grid-2 {
@@ -414,7 +652,57 @@
     display: none;
   }
 
+  /* Flags and multi-venue badges can push the ticker line past the truncated
+     name, so it needs to be allowed to wrap on narrow screens. */
+  .mr-market-id {
+    flex-wrap: wrap;
+  }
+
   .mr-header-inner {
-    gap: 16px;
+    gap: 12px;
+  }
+
+  .mr-nav {
+    gap: 2px;
+  }
+
+  .mr-nav-link {
+    padding: 6px 8px;
+  }
+
+  /* Touch targets. The dense desktop sizing is deliberate, but a finger is not
+     a cursor — below this width every control gets a taller hit area. */
+  .mr-btn,
+  .mr-btn-icon,
+  .mr-nav-link,
+  .mr-brand {
+    min-height: 44px;
+  }
+
+  .mr-nav-link {
+    display: inline-flex;
+    align-items: center;
+  }
+
+  /* The way back out of a detail page was a 15px-tall text run. */
+  .mr-breadcrumb-link {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+
+  .mr-chip {
+    min-height: 34px;
+  }
+}
+
+/* Below this the wordmark, three nav links and the theme toggle genuinely do
+   not fit on one line — the toggle was being pushed past the right edge, which
+   made the whole page scroll sideways and put the only theme control out of
+   reach. The mark stays, and the brand link's aria-label still names it. */
+@media (max-width: 560px) {
+  .mr-brand-text,
+  .mr-hide-xs {
+    display: none;
   }
 }

@@ -4,6 +4,7 @@ import './globals.css';
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import Link from 'next/link';
+import { PrimaryNav } from '@/components/PrimaryNav';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const inter = Inter({
@@ -28,17 +29,29 @@ export const metadata: Metadata = {
     'Every tokenized equity, across every venue. Compare the same ticker as a perpetual on Hyperliquid and a custody-backed token on Solana — live prices, structure and holder rights side by side.',
 };
 
+/**
+ * The one place in the app a raw colour is unavoidable.
+ *
+ * `theme-color` is a `<meta>` tag the browser reads to paint its own chrome
+ * before any stylesheet applies, so it cannot reference a CSS custom property.
+ * These values must be kept in sync by hand with `--mr-bg` in
+ * packages/ui/src/tokens.css.
+ *
+ * Both schemes are declared: a single dark value left a light-theme phone with
+ * dark browser chrome sitting above a near-white page.
+ */
+/* eslint-disable no-restricted-syntax -- a meta tag cannot take a CSS var */
+const THEME_COLOR = [
+  { media: '(prefers-color-scheme: dark)', color: '#0b0c0e' },
+  { media: '(prefers-color-scheme: light)', color: '#fcfcfd' },
+];
+/* eslint-enable no-restricted-syntax */
+
 export const viewport: Viewport = {
-  themeColor: '#0b0c0e',
+  themeColor: THEME_COLOR,
   width: 'device-width',
   initialScale: 1,
 };
-
-const NAV = [
-  { href: '/', label: 'Markets' },
-  { href: '/trends', label: 'Trends' },
-  { href: '/about', label: 'Method' },
-];
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -68,15 +81,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               </span>
             </Link>
 
-            <nav className="mr-nav" aria-label="Primary">
-              {NAV.map((item) => (
-                /* prefetch is the default in the App Router; stated explicitly
-                   because instant navigation is a product requirement here. */
-                <Link key={item.href} href={item.href} prefetch className="mr-nav-link">
-                  {item.label}
-                </Link>
-              ))}
-            </nav>
+            <PrimaryNav />
 
             <ThemeToggle />
           </div>

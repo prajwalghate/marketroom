@@ -83,14 +83,35 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
 
   return (
     <div className="mr-container">
+      {/* An ordered list, not two spans: the breadcrumb is a sequence, and a
+          screen reader should be able to say how many levels deep it is. */}
       <nav style={{ marginBottom: 16, fontSize: 'var(--mr-text-xs)' }} aria-label="Breadcrumb">
-        <Link href="/" prefetch style={{ color: 'var(--mr-text-subtle)', textDecoration: 'none' }}>
-          Markets
-        </Link>
-        <span style={{ color: 'var(--mr-text-subtle)', margin: '0 7px' }} aria-hidden="true">
-          /
-        </span>
-        <span style={{ color: 'var(--mr-text-muted)' }}>{asset.symbol}</span>
+        <ol
+          style={{
+            margin: 0,
+            padding: 0,
+            listStyle: 'none',
+            display: 'flex',
+            alignItems: 'center',
+          }}
+        >
+          <li>
+            <Link
+              href="/"
+              prefetch
+              className="mr-breadcrumb-link"
+              style={{ color: 'var(--mr-text-subtle)' }}
+            >
+              Markets
+            </Link>
+          </li>
+          <li style={{ color: 'var(--mr-text-subtle)', margin: '0 7px' }} aria-hidden="true">
+            /
+          </li>
+          <li style={{ color: 'var(--mr-text-muted)' }} aria-current="page">
+            {asset.symbol}
+          </li>
+        </ol>
       </nav>
 
       {/* ── Header ─────────────────────────────────────────────────────── */}
@@ -154,20 +175,44 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
       <div className="mr-grid-2">
         <div style={{ minWidth: 0 }}>
           {/* ── Chart ──────────────────────────────────────────────────── */}
-          {candles.length > 1 ? (
-            <section style={{ marginBottom: 22 }}>
-              <SectionTitle
-                action={
+          <section style={{ marginBottom: 22 }}>
+            <SectionTitle
+              action={
+                candles.length > 1 && (
                   <span style={{ fontSize: 'var(--mr-text-xs)', color: 'var(--mr-text-subtle)' }}>
-                    {candles.length} hourly bars · {chartChange ? 'last 14d' : ''}
+                    {/* Derived, not hardcoded: the previous copy appended a
+                        dangling "·" whenever the series had no net change. */}
+                    Hourly · last {Math.max(1, Math.round(candles.length / 24))} days
                   </span>
-                }
-              >
-                Price
-              </SectionTitle>
+                )
+              }
+            >
+              Price
+            </SectionTitle>
+            {candles.length > 1 ? (
               <CandleChart candles={candles} direction={chartChange?.direction ?? 'flat'} />
-            </section>
-          ) : null}
+            ) : (
+              /* Candles come from the perp venue only. When there is no perp
+                 listing — or the venue is down — the section used to vanish
+                 silently, which reads as a broken page rather than a known
+                 limit of the data. */
+              <p
+                style={{
+                  margin: 0,
+                  padding: '28px 16px',
+                  textAlign: 'center',
+                  fontSize: 'var(--mr-text-sm)',
+                  color: 'var(--mr-text-muted)',
+                  background: 'var(--mr-surface-1)',
+                  border: '1px dashed var(--mr-border)',
+                  borderRadius: 'var(--mr-radius-lg)',
+                }}
+              >
+                No price history for {asset.symbol}. Candles come from the Hyperliquid perpetual,
+                and this market is not currently quoted there.
+              </p>
+            )}
+          </section>
 
           {/* ── Cross-venue comparison — the product thesis ────────────── */}
           <section style={{ marginBottom: 22 }}>

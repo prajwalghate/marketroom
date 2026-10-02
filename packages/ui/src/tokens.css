@@ -28,6 +28,20 @@
  *      colour in the product that carries meaning.
  *
  * Governing principle: **the data is the only thing allowed to be colourful.**
+ *
+ * ── Contrast is measured, not eyeballed ─────────────────────────────────────
+ *
+ * Every pair below is verified by a script against WCAG 2.1:
+ *
+ *     pnpm --filter @marketroom/ui contrast
+ *
+ * Gates: body text and all numerics ≥ 4.5:1 (our smallest numeric is 11px, so
+ * nothing here qualifies for the 3:1 "large text" allowance); meaningful
+ * non-text — the focus ring, the pressed-state border, venue dots, sparkline
+ * strokes — ≥ 3:1. Purely decorative hairlines are exempt under WCAG 1.4.11
+ * and are deliberately left low-contrast; that is what makes the chrome recede.
+ *
+ * Any change to a colour token below must keep that script passing.
  */
 
 :root {
@@ -45,9 +59,12 @@
   --mr-border-subtle: #1c2024;
 
   /* ── Text ─────────────────────────────────────────────────────────────── */
+  /* Rated for --mr-bg through --mr-surface-3. On --mr-surface-raised (popovers,
+     tooltips, the skip link) use --mr-text or --mr-text-muted: --mr-text-subtle
+     measures 4.15:1 there, which is below the gate. */
   --mr-text: #e9ebee;
   --mr-text-muted: #9aa1a9;
-  --mr-text-subtle: #6a717a;
+  --mr-text-subtle: #858c95;
   --mr-text-inverse: #0b0c0e;
 
   /* ── Accent — interactive affordance and focus ONLY ───────────────────── */
@@ -56,33 +73,43 @@
   --mr-accent: #6b8cc4;
   --mr-accent-hover: #80a0d6;
   --mr-accent-muted: rgba(107, 140, 196, 0.14);
-  --mr-accent-border: rgba(107, 140, 196, 0.38);
+  /* 0.68, not a hairline alpha: this border is the outline of a *pressed* or
+     *focused* control, so WCAG 1.4.11 applies to it as state information and it
+     has to clear 3:1 against --mr-surface-2. At the old 0.38 it measured
+     1.81:1 — a selected filter chip was distinguishable by hue alone. */
+  --mr-accent-border: rgba(107, 140, 196, 0.68);
 
   /* ── Semantic: price direction ────────────────────────────────────────── */
   /* Noticeably desaturated against the reference's neon. These read clearly
      without glowing, because nothing else on the page competes for attention.
      NOTE: colour is never the sole signal — every price also carries a sign
-     (+/−) and an arrow glyph, for red/green colour blindness. */
+     (+/−) and an arrow glyph, for red/green colour blindness.
+     Each value clears 4.5:1 both on bare surfaces AND on its own `-soft` fill,
+     which is the case that actually fails if you only check the former. */
   --mr-up: #4e9e78;
   --mr-up-soft: rgba(78, 158, 120, 0.13);
   --mr-up-border: rgba(78, 158, 120, 0.32);
 
-  --mr-down: #c2706b;
-  --mr-down-soft: rgba(194, 112, 107, 0.13);
-  --mr-down-border: rgba(194, 112, 107, 0.32);
+  --mr-down: #c47570;
+  --mr-down-soft: rgba(196, 117, 112, 0.13);
+  --mr-down-border: rgba(196, 117, 112, 0.32);
 
-  --mr-flat: #78808a;
-  --mr-flat-soft: rgba(120, 128, 138, 0.12);
+  --mr-flat: #7b838d;
+  --mr-flat-soft: rgba(123, 131, 141, 0.12);
 
   /* ── Status ───────────────────────────────────────────────────────────── */
-  --mr-warn: #c9a227;
-  --mr-warn-soft: rgba(201, 162, 39, 0.13);
-  --mr-danger: #c2706b;
+  /* Deliberately dimmer than a "correct" warning yellow. At #c9a227 this
+     measured 8.09:1 on --mr-bg against the light theme's 5.1:1, so a PERP badge
+     shouted in dark and whispered in light. 6.4:1 matches the two themes and is
+     still well clear of the gate. */
+  --mr-warn: #b28f23;
+  --mr-warn-soft: rgba(178, 143, 35, 0.13);
+  --mr-danger: #c47570;
   --mr-ok: #4e9e78;
 
   /* ── Venue identity ───────────────────────────────────────────────────── */
   /* Low-chroma marks for venue chips. These label a source; they must never
-     out-shout a price. */
+     out-shout a price. Both clear 3:1 as non-text marks. */
   --mr-venue-hyperliquid: #5f9a94;
   --mr-venue-solana: #8a7bb8;
 
@@ -115,7 +142,18 @@
   --mr-shadow: 0 4px 16px -4px rgba(0, 0, 0, 0.45);
   --mr-shadow-lg: 0 16px 48px -12px rgba(0, 0, 0, 0.6);
 
-  --mr-focus-ring: 0 0 0 2px var(--mr-bg), 0 0 0 4px var(--mr-accent);
+  /* Focus: an `outline` with an offset, not a box-shadow ring. A box-shadow
+     ring has to paint its own gap, which means baking a backdrop colour into
+     the token — and that gap then renders as a dark halo on any element that
+     is not sitting directly on --mr-bg. `outline-offset` needs no backdrop,
+     follows the element's own border-radius, and survives forced-colors mode,
+     where box-shadows are not painted at all. */
+  --mr-focus-width: 2px;
+  --mr-focus-offset: 2px;
+  /* @deprecated Kept so existing references still resolve. Prefer
+     `outline: var(--mr-focus-width) solid var(--mr-accent)` with
+     `outline-offset: var(--mr-focus-offset)`. */
+  --mr-focus-ring: 0 0 0 var(--mr-focus-offset) var(--mr-bg), 0 0 0 4px var(--mr-accent);
 
   /* Fast enough to feel instant; slow enough to be perceptible. */
   --mr-duration-fast: 90ms;
@@ -137,31 +175,31 @@
 
   --mr-text: #14171a;
   --mr-text-muted: #5b636d;
-  --mr-text-subtle: #878f99;
+  --mr-text-subtle: #656d77;
   --mr-text-inverse: #ffffff;
 
   --mr-accent: #3c63a8;
   --mr-accent-hover: #2f5293;
   --mr-accent-muted: rgba(60, 99, 168, 0.1);
-  --mr-accent-border: rgba(60, 99, 168, 0.32);
+  --mr-accent-border: rgba(60, 99, 168, 0.7);
 
   /* Darkened for contrast against light surfaces — the dark-theme values would
      fail WCAG AA here. */
-  --mr-up: #2f7d5a;
-  --mr-up-soft: rgba(47, 125, 90, 0.11);
-  --mr-up-border: rgba(47, 125, 90, 0.3);
+  --mr-up: #2d7857;
+  --mr-up-soft: rgba(45, 120, 87, 0.11);
+  --mr-up-border: rgba(45, 120, 87, 0.3);
 
   --mr-down: #a84f4a;
   --mr-down-soft: rgba(168, 79, 74, 0.11);
   --mr-down-border: rgba(168, 79, 74, 0.3);
 
-  --mr-flat: #6b727c;
-  --mr-flat-soft: rgba(107, 114, 124, 0.1);
+  --mr-flat: #6a717b;
+  --mr-flat-soft: rgba(106, 113, 123, 0.1);
 
-  --mr-warn: #8a6d11;
-  --mr-warn-soft: rgba(138, 109, 17, 0.11);
+  --mr-warn: #836810;
+  --mr-warn-soft: rgba(131, 104, 16, 0.11);
   --mr-danger: #a84f4a;
-  --mr-ok: #2f7d5a;
+  --mr-ok: #2d7857;
 
   --mr-venue-hyperliquid: #3d7a74;
   --mr-venue-solana: #6a5b98;
@@ -206,9 +244,31 @@ body {
 }
 
 :focus-visible {
-  outline: none;
-  box-shadow: var(--mr-focus-ring);
-  border-radius: var(--mr-radius-sm);
+  outline: var(--mr-focus-width) solid var(--mr-accent);
+  outline-offset: var(--mr-focus-offset);
+}
+
+/* Forced-colors (Windows High Contrast) discards author colours. Hand the ring
+   back to the system so keyboard users keep a focus indicator. */
+@media (forced-colors: active) {
+  :focus-visible {
+    outline-color: Highlight;
+  }
+}
+
+/* Disabled controls. WCAG 1.4.3 exempts inactive components from the contrast
+   minimum, so dimming is legitimate here — but `cursor` and the dimming must
+   beat the app's own `.mr-*` control classes, hence the element-qualified
+   selectors (specificity 0,1,1 vs a class's 0,1,0). */
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+button[aria-disabled='true'],
+a[aria-disabled='true'],
+[role='button'][aria-disabled='true'] {
+  cursor: not-allowed;
+  opacity: 0.55;
 }
 
 ::selection {
@@ -250,6 +310,149 @@ body {
   border-radius: var(--mr-radius-full);
 }
 
+/* ── Visually hidden ─────────────────────────────────────────────────────── */
+/* Lives here rather than in the app, because @marketroom/ui itself depends on
+   it: PriceChange emits a screen-reader-only direction word. A component
+   cannot rely on a class defined one layer above it.
+   `clip` is the legacy path; `clip-path` is the modern one. Both are kept
+   because the two are honoured by different screen-reader/browser pairs. */
+.mr-sr-only,
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* ── Surface ─────────────────────────────────────────────────────────────── */
+/* The <Surface> primitive. Background and border come through custom properties
+   so that `.mr-interactive`'s state rules can override them — a class can never
+   beat an inline `background`, but it can set a variable that an inline
+   `background: var(--mr-surface-bg)` reads. */
+.mr-surface {
+  background: var(--mr-surface-bg, var(--mr-surface-1));
+  border: 1px solid var(--mr-surface-border, var(--mr-border));
+  border-radius: var(--mr-radius-lg);
+  transition:
+    border-color var(--mr-duration) var(--mr-ease),
+    background var(--mr-duration) var(--mr-ease);
+}
+
+.mr-interactive {
+  cursor: pointer;
+}
+
+.mr-interactive:hover {
+  --mr-surface-border: var(--mr-border-strong);
+}
+
+.mr-interactive:active {
+  --mr-surface-border: var(--mr-border-strong);
+  --mr-surface-bg: var(--mr-surface-2);
+}
+
+/* An interactive Surface is a container, so it is usually not itself focusable
+   — the link inside it is. Light the card when that link takes focus, so the
+   hit target and the focus indicator agree. */
+.mr-interactive:focus-within {
+  --mr-surface-border: var(--mr-accent-border);
+}
+
+/* ── Tooltip ─────────────────────────────────────────────────────────────── */
+/* CSS-only, on purpose. A JS tooltip would turn every badge into a client
+   component and ship an interactive island for a string of text. This opens on
+   hover AND on keyboard focus, which is what native `title` never does — and
+   unlike `title` it is styled, instant, and reachable on touch.
+   The trigger carries `aria-describedby`, so the bubble is announced rather
+   than being decoration a screen reader has to guess at. */
+.mr-tooltip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+/* The focusable trigger. Hugs its content so the focus outline traces the badge
+   or the word, not a full-width inline box. */
+.mr-tooltip-anchor {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35em;
+}
+
+.mr-tooltip-trigger {
+  cursor: help;
+  text-decoration-line: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--mr-border-strong);
+  text-underline-offset: 2px;
+}
+
+.mr-tooltip-bubble {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 7px);
+  z-index: 60;
+  transform: translateX(-50%);
+  width: max-content;
+  /* Never wider than the viewport. Without the clamp a 252px bubble on a
+     375px phone cannot fit however it is aligned. */
+  max-width: min(252px, calc(100vw - 24px));
+  padding: 6px 9px;
+  /* A tooltip is prose, so it opts out of whatever the trigger was doing —
+     uppercase badge tracking, mono digits, nowrap. */
+  font-family: var(--mr-font-sans);
+  font-size: var(--mr-text-xs);
+  font-weight: 400;
+  line-height: 1.45;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  color: var(--mr-text);
+  background: var(--mr-surface-raised);
+  border: 1px solid var(--mr-border-strong);
+  border-radius: var(--mr-radius);
+  box-shadow: var(--mr-shadow);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition:
+    opacity var(--mr-duration) var(--mr-ease),
+    visibility var(--mr-duration) var(--mr-ease);
+}
+
+.mr-tooltip-bubble[data-side='bottom'] {
+  bottom: auto;
+  top: calc(100% + 7px);
+}
+
+/* Horizontal alignment.
+   A centred bubble on a trigger near a viewport edge overhangs it by
+   construction — measured at 72px past a 375px viewport on the venue
+   comparison cards, where the badge sits at the card's right edge. Width
+   alone cannot fix that, so the anchor edge is author-controlled. */
+.mr-tooltip-bubble[data-align='end'] {
+  left: auto;
+  right: 0;
+  transform: none;
+}
+.mr-tooltip-bubble[data-align='start'] {
+  left: 0;
+  transform: none;
+}
+
+.mr-tooltip:hover > .mr-tooltip-bubble,
+.mr-tooltip:focus-within > .mr-tooltip-bubble {
+  opacity: 1;
+  visibility: visible;
+}
+
 /* ── Price flash ─────────────────────────────────────────────────────────── */
 /* A brief tinted background on tick. Deliberately subtle: a live table where
    every row flashes brightly is unreadable, which is the failure mode of most
@@ -278,22 +481,4 @@ body {
 
 .mr-flash-down {
   animation: mr-flash-down 600ms var(--mr-ease);
-}
-
-/* Skeleton shimmer — used only for genuinely async panels (order book), never
-   for anything server-rendered. */
-@keyframes mr-pulse {
-  0%,
-  100% {
-    opacity: 0.45;
-  }
-  50% {
-    opacity: 0.75;
-  }
-}
-
-.mr-skeleton {
-  background: var(--mr-surface-3);
-  border-radius: var(--mr-radius-sm);
-  animation: mr-pulse 1.6s ease-in-out infinite;
 }

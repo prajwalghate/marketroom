@@ -10,7 +10,9 @@ import { normalizeCloses, seriesChange } from '@marketroom/core';
  * one path string.
  *
  * Decorative by definition — the numeric change is always displayed next to it,
- * so it carries `aria-hidden`.
+ * so it carries `aria-hidden`. If you ever render one of these *without* the
+ * number beside it, that is a bug: there is then no accessible path to the
+ * information at all.
  */
 
 export interface SparklineProps {
@@ -30,6 +32,24 @@ const COLOR: Record<Direction, string> = {
   flat: 'var(--mr-flat)',
 };
 
+/**
+ * Stable per-series id for the gradient.
+ *
+ * A constant id would collide the moment two filled sparklines share a
+ * direction: duplicate DOM ids are invalid, and every `url(#id)` in the document
+ * silently resolves to whichever one the browser parsed first. Hashing the path
+ * keeps the id unique per shape and identical between server and client, so
+ * hydration still matches. (`useId` would be the idiomatic answer but it is a
+ * client hook, and this component has to render inside Server Components.)
+ */
+function gradientIdFor(path: string, direction: Direction): string {
+  let hash = 0;
+  for (let index = 0; index < path.length; index += 1) {
+    hash = (hash * 31 + path.charCodeAt(index)) | 0;
+  }
+  return `mr-spark-${direction}-${(hash >>> 0).toString(36)}`;
+}
+
 export function Sparkline({
   candles,
   width = 88,
@@ -38,9 +58,21 @@ export function Sparkline({
   filled = false,
   strokeWidth = 1.25,
 }: SparklineProps) {
+  // One point is not a trend, so there is nothing honest to draw. Reserve
+  // exactly the same box — same element, same viewBox, same `display: block` —
+  // so a row with no history is the same height as a row with history. An
+  // inline <svg> here would pick up a baseline gap and shift the row.
   if (candles.length < 2) {
-    // Reserve the same space so a missing sparkline never shifts the layout.
-    return <svg width={width} height={height} aria-hidden="true" />;
+    return (
+      <svg
+        width={width}
+        height={height}
+        viewBox={`0 0 ${width} ${height}`}
+        aria-hidden="true"
+        focusable="false"
+        style={{ display: 'block' }}
+      />
+    );
   }
 
   const normalized = normalizeCloses(candles);
@@ -60,7 +92,7 @@ export function Sparkline({
 
   const line = `M${points.join(' L')}`;
   const area = `${line} L${width},${height} L0,${height} Z`;
-  const gradientId = `mr-spark-${resolved}`;
+  const gradientId = gradientIdFor(line, resolved);
 
   return (
     <svg
@@ -68,6 +100,7 @@ export function Sparkline({
       height={height}
       viewBox={`0 0 ${width} ${height}`}
       aria-hidden="true"
+      focusable="false"
       style={{ display: 'block', overflow: 'visible' }}
     >
       {filled && (

@@ -15,7 +15,11 @@ export const metadata: Metadata = {
  */
 export default function AboutPage() {
   return (
-    <div className="mr-container" style={{ maxWidth: 820 }}>
+    /* Standard container, with the measure capped on the prose itself. The old
+       `maxWidth: 820` shrank the container, and because it still centres, this
+       page's content started 250px right of the header and footer — the only
+       route in the app that did not line up with its own chrome. */
+    <div className="mr-container">
       <h1
         style={{
           margin: '0 0 8px',
@@ -26,7 +30,14 @@ export default function AboutPage() {
       >
         Method &amp; caveats
       </h1>
-      <p style={{ color: 'var(--mr-text-muted)', margin: '0 0 32px', lineHeight: 1.65 }}>
+      <p
+        style={{
+          color: 'var(--mr-text-muted)',
+          margin: '0 0 32px',
+          lineHeight: 1.65,
+          maxWidth: '72ch',
+        }}
+      >
         Marketroom indexes tokenized equities across chains. Here is exactly where every number
         comes from, and what it does not mean.
       </p>
@@ -103,11 +114,14 @@ function Block({ title, children }: { title: string; children: React.ReactNode }
   return (
     <section style={{ marginBottom: 30 }}>
       <SectionTitle>{title}</SectionTitle>
+      {/* Capped measure: long lines of prose are hard to track back from, and
+          this page is the one place in the product that is mostly reading. */}
       <div
         style={{
           fontSize: 'var(--mr-text-base)',
           lineHeight: 1.7,
           color: 'var(--mr-text-muted)',
+          maxWidth: '72ch',
         }}
       >
         {children}

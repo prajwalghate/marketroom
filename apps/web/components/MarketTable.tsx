@@ -42,19 +42,29 @@ interface Column {
   key: string;
   label: string;
   sort?: SortKey;
+  /** The reverse-direction key, where core provides one. Enables a real toggle. */
+  altSort?: SortKey;
   numeric?: boolean;
   hideOnMobile?: boolean;
+  /** Dropped below 560px, where three columns are all that fit a phone. */
+  hideOnPhone?: boolean;
 }
 
 const COLUMNS: Column[] = [
   { key: 'asset', label: 'Market', sort: 'symbol' },
   { key: 'price', label: 'Price', sort: 'price', numeric: true },
-  { key: 'change', label: '24h', sort: 'change', numeric: true },
+  { key: 'change', label: '24h', sort: 'change', altSort: 'changeAsc', numeric: true },
   { key: 'spark', label: '', hideOnMobile: true },
-  { key: 'volume', label: 'Volume 24h', sort: 'volume', numeric: true },
+  { key: 'volume', label: 'Volume 24h', sort: 'volume', numeric: true, hideOnPhone: true },
   { key: 'oi', label: 'Open interest', sort: 'openInterest', numeric: true, hideOnMobile: true },
   { key: 'venues', label: 'Venues', sort: 'venues', hideOnMobile: true },
 ];
+
+/**
+ * Which way each sort key actually orders, so the header can state the truth.
+ * Everything else in core sorts descending.
+ */
+const ASCENDING: ReadonlySet<SortKey> = new Set<SortKey>(['symbol', 'sector', 'changeAsc']);
 
 export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTableProps) {
   const live = useLivePrices();
@@ -62,34 +72,57 @@ export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTa
   return (
     <div className="mr-table-scroll">
       <table className="mr-table">
+        {/* The table is the page's main content but had no accessible name, so
+            it was announced only as "table". */}
+        <caption className="sr-only">
+          Tokenized equity markets, {assets.length} rows. Use the column headers to sort.
+        </caption>
         <thead>
           <tr>
-            {COLUMNS.map((column) => (
-              <th
-                key={column.key}
-                className={[
-                  column.numeric ? 'is-numeric' : '',
-                  column.hideOnMobile ? 'mr-hide-sm' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                aria-sort={column.sort === sort ? 'descending' : column.sort ? 'none' : undefined}
-              >
-                {column.sort ? (
-                  <button
-                    type="button"
-                    className="mr-sort-btn"
-                    data-active={column.sort === sort}
-                    onClick={() => onSortChange(column.sort!)}
-                  >
-                    {column.label}
-                    {column.sort === sort && <span aria-hidden="true">↓</span>}
-                  </button>
-                ) : (
-                  column.label
-                )}
-              </th>
-            ))}
+            {COLUMNS.map((column) => {
+              const active = column.sort === sort || column.altSort === sort;
+              const direction = ASCENDING.has(sort) ? 'ascending' : 'descending';
+
+              return (
+                <th
+                  key={column.key}
+                  className={[
+                    column.numeric ? 'is-numeric' : '',
+                    column.hideOnMobile ? 'mr-hide-sm' : '',
+                    column.hideOnPhone ? 'mr-hide-xs' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  aria-sort={column.sort ? (active ? direction : 'none') : undefined}
+                >
+                  {column.sort ? (
+                    <button
+                      type="button"
+                      className="mr-sort-btn"
+                      data-active={active}
+                      /* Clicking the active column reverses it where core has a
+                         reverse key; otherwise it re-applies the same sort. */
+                      onClick={() =>
+                        onSortChange(
+                          active && column.altSort
+                            ? sort === column.sort
+                              ? column.altSort
+                              : column.sort!
+                            : column.sort!,
+                        )
+                      }
+                    >
+                      {column.label}
+                      {active && (
+                        <span aria-hidden="true">{direction === 'ascending' ? '↑' : '↓'}</span>
+                      )}
+                    </button>
+                  ) : (
+                    column.label
+                  )}
+                </th>
+              );
+            })}
           </tr>
         </thead>
         <tbody>
@@ -151,6 +184,7 @@ const MarketRow = memo(function MarketRow({ view, candles, livePrice }: MarketRo
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ minWidth: 0 }}>
               <div
+                className="mr-market-id"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -171,15 +205,11 @@ const MarketRow = memo(function MarketRow({ view, candles, livePrice }: MarketRo
                   </Badge>
                 )}
               </div>
+              {/* Truncation width lives in CSS because it has to change at
+                  phone widths — an inline style cannot carry a media query. */}
               <div
-                style={{
-                  fontSize: 'var(--mr-text-xs)',
-                  color: 'var(--mr-text-subtle)',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  whiteSpace: 'nowrap',
-                  maxWidth: 230,
-                }}
+                className="mr-market-name"
+                style={{ fontSize: 'var(--mr-text-xs)', color: 'var(--mr-text-subtle)' }}
               >
                 {asset.name}
               </div>
@@ -197,14 +227,12 @@ const MarketRow = memo(function MarketRow({ view, candles, livePrice }: MarketRo
       </td>
 
       <td className="mr-hide-sm" style={{ width: 96 }}>
-        {candles && candles.length > 1 ? (
-          <Sparkline candles={candles} direction={change?.direction} />
-        ) : (
-          <div style={{ width: 88, height: 28 }} />
-        )}
+        {/* Sparkline reserves an identical box when it has nothing to draw, so
+            the row never reflows between a market with history and one without. */}
+        <Sparkline candles={candles ?? []} direction={change?.direction} />
       </td>
 
-      <td className="is-numeric mr-num" style={{ color: 'var(--mr-text-muted)' }}>
+      <td className="is-numeric mr-num mr-hide-xs" style={{ color: 'var(--mr-text-muted)' }}>
         {formatCompactUsd(volume)}
       </td>
 
