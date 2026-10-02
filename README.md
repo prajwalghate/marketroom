@@ -142,31 +142,44 @@ left in `adapters` so live trading can be added without a refactor.
 
 ## Deploy
 
-Deployed on Vercel from `main`. Configuration lives in [`vercel.json`](vercel.json) at the
-repo root, so no dashboard setup is required — import the repo with **Root Directory left
-as the repo root** and it builds correctly.
+Deployed on Vercel from `main`.
+
+### Import (one-time)
+
+[vercel.com/new](https://vercel.com/new) → import the repo → **set Root Directory to
+`apps/web`** → Deploy.
+
+That one setting is the whole configuration. Everything else is zero-config: Vercel
+detects Next.js, finds `pnpm-workspace.yaml` above the root directory, installs the whole
+workspace from there, and builds the app in place.
+
+> **Why `apps/web` and not the repo root.** Vercel's Next.js builder expects to run _in_
+> the Next app and find `.next` beside it. Driving it from the repo root with a
+> `buildCommand` and `outputDirectory: apps/web/.next` compiles fine and then fails with
+> _"The Next.js output directory was not found"_ — the build succeeds and the deploy
+> still dies. There is deliberately **no `vercel.json`** in this repo; it was the cause,
+> not the cure.
+
+Or from the CLI:
 
 ```bash
-# one-time, from the repo root
 vercel login
-vercel link          # accept the repo root as Root Directory
-vercel --prod        # or: git push — main auto-deploys once linked
+vercel link          # when prompted, set the root directory to apps/web
+vercel --prod
 ```
 
-**No environment variables are required.** Every data source is a public,
-unauthenticated endpoint. The vars in `.env.example` only exist to point at different
-endpoints (e.g. a testnet) or to tune the cache, and all have working defaults in code.
+Once linked, pushes to `main` deploy automatically and every PR gets a preview URL.
 
-### How it builds
+### Why no build orchestration is needed
 
-| Setting | Value                                           | Why                                      |
-| ------- | ----------------------------------------------- | ---------------------------------------- |
-| Install | `pnpm install --frozen-lockfile`                | Workspace install from the root          |
-| Build   | `pnpm turbo run build --filter=@marketroom/web` | Builds the app and only its dependencies |
-| Output  | `apps/web/.next`                                |                                          |
+**No workspace package has a build step.** `core`, `ui`, `adapters` and `catalog` ship
+TypeScript source and are compiled by Next through `transpilePackages`, so `next build`
+alone produces everything. Turborepo still runs `typecheck`, `test` and `contrast` in CI,
+but the deploy does not need it.
 
-`prepare` is `husky \|\| true` deliberately: git hooks are a developer-machine concern, and
-a non-zero exit from `prepare` would fail the entire install on Vercel.
+**No environment variables are required.** Every data source is a public, unauthenticated
+endpoint. The vars in `.env.example` only point at alternative endpoints (e.g. a testnet)
+or tune the cache, and all have working defaults in code.
 
 ### What gets rendered how
 
@@ -175,7 +188,7 @@ a non-zero exit from `prepare` would fail the entire install on Vercel.
 | `/`                 | Dynamic     | Reads `searchParams` so a shared filtered link arrives already filtered |
 | `/market/[id]`      | SSG         | Every market prerendered at build time                                  |
 | `/trends`, `/about` | Static      |                                                                         |
-| `/api/snapshot`     | Cached JSON | `s-maxage=15, stale-while-revalidate=60`                                |
+| `/api/snapshot`     | Cached JSON | `s-maxage=15, stale-while-revalidate=60`, set by the route handler      |
 
 `/` being dynamic costs little — the data underneath is the shared cached snapshot, so
 filtered links serve in tens of milliseconds rather than hitting an upstream API.
