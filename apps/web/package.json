@@ -14,6 +14,7 @@
     "@marketroom/catalog": "workspace:*",
     "@marketroom/core": "workspace:*",
     "@marketroom/ui": "workspace:*",
+    "@tanstack/react-virtual": "^3.11.2",
     "clsx": "^2.1.1",
     "lightweight-charts": "^4.2.3",
     "next": "15.1.6",
@@ -21,10 +22,10 @@
     "react-dom": "19.0.0"
   },
   "devDependencies": {
+    "@marketroom/config": "workspace:*",
     "@types/node": "^22.10.5",
     "@types/react": "^19.0.7",
     "@types/react-dom": "^19.0.3",
-    "typescript": "^5.7.3",
-    "@marketroom/config": "workspace:*"
+    "typescript": "^5.7.3"
   }
 }

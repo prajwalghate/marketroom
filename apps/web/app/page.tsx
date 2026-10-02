@@ -14,13 +14,30 @@ import { getSnapshot, getSparklineData } from '@/lib/data';
  * That ordering is what satisfies the "no visible loading spinners" requirement
  * structurally — there is no client-side fetch on the critical path to spin
  * for.
+ *
+ * Reading `searchParams` opts this route into dynamic rendering, which is
+ * deliberate: filter state lives in the URL, and a shared link has to arrive
+ * already filtered. Rendering it statically would mean serving the unfiltered
+ * table and letting the client correct it after hydration — a visible flash of
+ * the wrong content on exactly the links people pass around.
+ *
+ * It costs little, because the data underneath is still the shared cached
+ * snapshot — this renders from memory, not from an upstream request.
  */
 
-// ISR: the page is regenerated at most every 15s and served from cache in
-// between, so a visitor is never waiting on an upstream API.
+// The snapshot behind this page is reused for 15s; see `getSnapshot`.
 export const revalidate = 15;
 
-export default async function MarketsPage() {
+export default async function MarketsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  // Awaited for its effect on rendering mode, not its value — the filters
+  // themselves are read from the URL by `useMarketViewState`, so that one
+  // parser is the only thing that decides what a query string means.
+  await searchParams;
+
   const snapshot = await getSnapshot();
 
   // Sparklines only for the busiest markets — 129 candle series per render

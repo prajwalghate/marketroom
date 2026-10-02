@@ -15,7 +15,8 @@ import {
 } from '@marketroom/core';
 import { Badge, PriceChange, Sparkline, VenueBadge } from '@marketroom/ui';
 import Link from 'next/link';
-import { memo } from 'react';
+import { useWindowVirtualizer } from '@tanstack/react-virtual';
+import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLivePrices } from '@/lib/useLivePrices';
 
 /**
@@ -86,6 +87,7 @@ export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTa
               return (
                 <th
                   key={column.key}
+                  data-col={column.key}
                   className={[
                     column.numeric ? 'is-numeric' : '',
                     column.hideOnMobile ? 'mr-hide-sm' : '',
@@ -125,18 +127,173 @@ export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTa
             })}
           </tr>
         </thead>
-        <tbody>
-          {assets.map((view) => (
-            <MarketRow
-              key={view.asset.id}
-              view={view}
-              candles={sparklines[view.asset.id]}
-              livePrice={livePriceFor(view, live)}
-            />
-          ))}
-        </tbody>
+        <VirtualBody assets={assets} sparklines={sparklines} live={live} />
       </table>
     </div>
+  );
+}
+
+/**
+ * Only window once the list is long enough to pay for it. Below this a table
+ * renders in well under a frame, and windowing would add scroll machinery for
+ * nothing.
+ */
+const VIRTUALIZE_ABOVE = 50;
+
+/** Fallback row height, replaced by real measurements as rows render. */
+const ESTIMATED_ROW_HEIGHT = 57;
+
+/** Rows rendered beyond the viewport, so a fast scroll does not reach blank space. */
+const OVERSCAN = 12;
+
+/**
+ * The table body, windowed.
+ *
+ * Three constraints shaped this:
+ *
+ *  1. **It must not own the scrollbar.** Scrolling an inner container would
+ *     make it the containing block for `position: sticky` and break the header
+ *     — the same trap that `overflow-x: auto` set earlier. So this virtualizes
+ *     against the *window*, and the page keeps one scrollbar.
+ *
+ *  2. **The server must still render every row.** The first paint has to be
+ *     complete — for crawlers, for a shared filtered link, and because
+ *     rendering a window server-side means guessing a viewport height. So
+ *     `mounted` gates the windowing: the server and the first client render
+ *     emit all rows (no hydration mismatch), and windowing takes over on the
+ *     next tick.
+ *
+ *  3. **Row heights vary.** A two-line stacked row on a phone is ~82px, a
+ *     desktop row ~46px, so heights are measured rather than assumed.
+ *
+ * Known trade-off: find-in-page only finds rendered rows. The app's own search
+ * covers the whole dataset and is the better tool here, but it is a real
+ * regression for anyone who reaches for Ctrl+F.
+ */
+interface BodyProps {
+  assets: readonly AssetView[];
+  sparklines: Record<string, Candle[]>;
+  live: ReadonlyMap<string, number>;
+}
+
+/**
+ * The table body.
+ *
+ * Short lists render whole; long ones window. The split is a component
+ * boundary rather than a branch inside one, because the virtualizer needs the
+ * body's document offset to compute its range, and that offset is only
+ * knowable after the element exists. Mounting a dedicated component lets it be
+ * measured in a layout effect before the first windowed paint, instead of being
+ * read as `null` during the first render and silently pinning the window to the
+ * top of the list.
+ */
+function VirtualBody({ assets, sparklines, live }: BodyProps) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  // The server, and the first client render, emit every row: the first paint
+  // has to be complete for crawlers and for shared filtered links, and
+  // rendering a window server-side would mean guessing a viewport height.
+  // Matching markup on both sides also keeps hydration clean.
+  if (!mounted || assets.length <= VIRTUALIZE_ABOVE) {
+    return <PlainBody assets={assets} sparklines={sparklines} live={live} />;
+  }
+  return <WindowedBody assets={assets} sparklines={sparklines} live={live} />;
+}
+
+function PlainBody({ assets, sparklines, live }: BodyProps) {
+  return (
+    <tbody>
+      {assets.map((view) => (
+        <MarketRow
+          key={view.asset.id}
+          view={view}
+          candles={sparklines[view.asset.id]}
+          livePrice={livePriceFor(view, live)}
+        />
+      ))}
+    </tbody>
+  );
+}
+
+/**
+ * Windowed body.
+ *
+ * Virtualizes against the *window*, not an inner scroller. An inner scroll
+ * container would become the containing block for `position: sticky` and break
+ * the table header — the same trap `overflow-x: auto` set earlier — and would
+ * give the page two scrollbars.
+ *
+ * Known trade-off: find-in-page only reaches rendered rows. The app's own
+ * search covers the whole dataset and is the better tool here, but this is a
+ * real regression for anyone who reaches for Ctrl+F.
+ */
+function WindowedBody({ assets, sparklines, live }: BodyProps) {
+  const bodyRef = useRef<HTMLTableSectionElement>(null);
+  const [scrollMargin, setScrollMargin] = useState(0);
+
+  // Where the body starts in the document. Without it every range is measured
+  // from the top of the page, so the window stays pinned to the first rows
+  // however far the reader scrolls. Re-measured on resize because the filter
+  // chips above reflow and change the offset.
+  useLayoutEffect(() => {
+    const measure = () => {
+      const node = bodyRef.current;
+      if (node) setScrollMargin(node.getBoundingClientRect().top + window.scrollY);
+    };
+    measure();
+    window.addEventListener('resize', measure);
+    return () => window.removeEventListener('resize', measure);
+  }, []);
+
+  const virtualizer = useWindowVirtualizer({
+    count: assets.length,
+    estimateSize: () => ESTIMATED_ROW_HEIGHT,
+    overscan: OVERSCAN,
+    scrollMargin,
+  });
+
+  const items = virtualizer.getVirtualItems();
+  const first = items[0];
+  const last = items[items.length - 1];
+
+  // Spacer rows stand in for what is not rendered, so the scrollbar keeps its
+  // true length. Transforms are not an option: a transformed `<tr>` is not
+  // reliably laid out inside a table.
+  const padTop = first ? first.start - scrollMargin : 0;
+  const padBottom = last ? virtualizer.getTotalSize() - last.end : 0;
+
+  return (
+    <tbody ref={bodyRef}>
+      {padTop > 0 && (
+        <tr aria-hidden="true" style={{ height: padTop }}>
+          <td colSpan={COLUMNS.length} style={{ padding: 0, border: 'none' }} />
+        </tr>
+      )}
+
+      {items.map((item) => {
+        const view = assets[item.index];
+        if (!view) return null;
+        return (
+          <MarketRow
+            key={view.asset.id}
+            view={view}
+            candles={sparklines[view.asset.id]}
+            livePrice={livePriceFor(view, live)}
+            // Feeds real heights back, so a two-line phone row and a one-line
+            // desktop row both converge off the same estimate.
+            measureRef={virtualizer.measureElement}
+            index={item.index}
+          />
+        );
+      })}
+
+      {padBottom > 0 && (
+        <tr aria-hidden="true" style={{ height: padBottom }}>
+          <td colSpan={COLUMNS.length} style={{ padding: 0, border: 'none' }} />
+        </tr>
+      )}
+    </tbody>
   );
 }
 
@@ -154,6 +311,9 @@ interface MarketRowProps {
   view: AssetView;
   candles: Candle[] | undefined;
   livePrice: number | undefined;
+  /** Supplied only while windowing, so the virtualizer can measure real heights. */
+  measureRef?: (node: Element | null) => void;
+  index?: number;
 }
 
 /**
@@ -162,7 +322,13 @@ interface MarketRowProps {
  * `memo` is load-bearing: without it, every websocket frame would re-render the
  * entire table.
  */
-const MarketRow = memo(function MarketRow({ view, candles, livePrice }: MarketRowProps) {
+const MarketRow = memo(function MarketRow({
+  view,
+  candles,
+  livePrice,
+  measureRef,
+  index,
+}: MarketRowProps) {
   const { asset } = view;
   const primary = primaryListing(view);
   const snapshotPrice = consolidatedPrice(view);
@@ -178,8 +344,8 @@ const MarketRow = memo(function MarketRow({ view, candles, livePrice }: MarketRo
   const spread = venueSpread(view);
 
   return (
-    <tr>
-      <td>
+    <tr ref={measureRef} data-index={index}>
+      <td data-col="asset">
         <Link href={`/market/${asset.id}`} className="mr-row-link" prefetch>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <div style={{ minWidth: 0 }}>
@@ -218,31 +384,39 @@ const MarketRow = memo(function MarketRow({ view, candles, livePrice }: MarketRo
         </Link>
       </td>
 
-      <td className="is-numeric mr-num" style={{ fontWeight: 500 }}>
+      <td data-col="price" className="is-numeric mr-num" style={{ fontWeight: 500 }}>
         {formatPrice(price)}
       </td>
 
-      <td className="is-numeric">
+      <td data-col="change" className="is-numeric">
         <PriceChange fraction={change?.fraction ?? null} direction={change?.direction} />
       </td>
 
-      <td className="mr-hide-sm" style={{ width: 96 }}>
+      <td data-col="spark" className="mr-hide-sm" style={{ width: 96 }}>
         {/* Sparkline reserves an identical box when it has nothing to draw, so
             the row never reflows between a market with history and one without. */}
         <Sparkline candles={candles ?? []} direction={change?.direction} />
       </td>
 
-      <td className="is-numeric mr-num mr-hide-xs" style={{ color: 'var(--mr-text-muted)' }}>
+      <td
+        data-col="volume"
+        className="is-numeric mr-num mr-hide-xs"
+        style={{ color: 'var(--mr-text-muted)' }}
+      >
         {formatCompactUsd(volume)}
       </td>
 
-      <td className="is-numeric mr-num mr-hide-sm" style={{ color: 'var(--mr-text-muted)' }}>
+      <td
+        data-col="oi"
+        className="is-numeric mr-num mr-hide-sm"
+        style={{ color: 'var(--mr-text-muted)' }}
+      >
         {/* Perps report open interest; token listings report pool liquidity.
             Showing whichever exists is more honest than a column of dashes. */}
         {openInterest !== null ? formatCompactUsd(openInterest) : formatCompactUsd(liquidity)}
       </td>
 
-      <td className="mr-hide-sm">
+      <td data-col="venues" className="mr-hide-sm">
         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
           {view.listings.map(({ listing }) => (
             <VenueBadge key={listing.id} venue={listing.venue} compact />

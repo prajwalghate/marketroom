@@ -701,8 +701,94 @@
    made the whole page scroll sideways and put the only theme control out of
    reach. The mark stays, and the brand link's aria-label still names it. */
 @media (max-width: 560px) {
-  .mr-brand-text,
+  .mr-brand-text {
+    display: none;
+  }
+
+  /* ── Stacked market rows ────────────────────────────────────────────────
+     Below this width a table is the wrong shape. Deleting columns until one
+     fits means truncated names and less information, so each row becomes a
+     two-line card instead: identity and price on the first line, volume and
+     change on the second.
+
+     That shows FOUR figures in less width than the three-column table managed,
+     with no ellipsis. The markup stays a real <table> — the header is still
+     announced, `aria-sort` still works, and the cells keep their column
+     association; only the visual layout changes. Cells are placed by
+     `data-col`, not nth-child, so reordering a column cannot silently scramble
+     this. */
+
+  .mr-table,
+  .mr-table tbody,
+  .mr-table tr {
+    display: block;
+  }
+
+  /* Visually hidden, not removed: the header still names the columns for
+     assistive tech, and the sort buttons stay reachable. */
+  .mr-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+
+  .mr-table tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'asset price'
+      'meta change';
+    gap: 2px 12px;
+    align-items: center;
+    padding: 10px 2px;
+    border-bottom: 1px solid var(--mr-border-subtle);
+  }
+
+  .mr-table tbody td {
+    display: block;
+    padding: 0;
+    border-bottom: none;
+  }
+
+  .mr-table tbody td[data-col='asset'] {
+    grid-area: asset;
+  }
+  .mr-table tbody td[data-col='price'] {
+    grid-area: price;
+    text-align: right;
+    font-size: var(--mr-text-base);
+  }
+  .mr-table tbody td[data-col='change'] {
+    grid-area: change;
+    text-align: right;
+  }
+
+  /* Volume moves under the name and is labelled, because out of its column it
+     is just an unexplained number. */
+  .mr-table tbody td[data-col='volume'] {
+    grid-area: meta;
+    display: block;
+    text-align: left;
+    font-size: var(--mr-text-2xs);
+  }
+  .mr-table tbody td[data-col='volume']::before {
+    content: 'Vol ';
+    color: var(--mr-text-subtle);
+  }
+
+  /* No room for these at phone width, and they are the least load-bearing. */
+  .mr-table tbody td[data-col='spark'],
+  .mr-table tbody td[data-col='oi'],
+  .mr-table tbody td[data-col='venues'],
   .mr-hide-xs {
     display: none;
+  }
+
+  /* The name can use the full line now that nothing competes with it. */
+  .mr-market-name {
+    max-width: none;
   }
 }

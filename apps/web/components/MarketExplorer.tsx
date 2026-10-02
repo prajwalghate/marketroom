@@ -2,7 +2,6 @@
 
 import type { AssetClass, AssetView, Candle, SortKey, VenueId } from '@marketroom/core';
 import {
-  EMPTY_FILTERS,
   assetClassFacets,
   countryFacets,
   SORT_LABELS,
@@ -11,7 +10,8 @@ import {
   selectAssets,
 } from '@marketroom/core';
 import { EmptyState } from '@marketroom/ui';
-import { useDeferredValue, useMemo, useState } from 'react';
+import { useDeferredValue, useMemo } from 'react';
+import { useMarketViewState } from '@/lib/useMarketViewState';
 import { MarketTable } from './MarketTable';
 
 /**
@@ -25,6 +25,9 @@ import { MarketTable } from './MarketTable';
  * `useDeferredValue` on the query keeps typing responsive: React renders the
  * input immediately and the (heavier) table at a lower priority, so the caret
  * never lags behind the keyboard.
+ *
+ * All view state lives in the URL — see `useMarketViewState`. This component
+ * holds none of its own, so a filtered view is a link.
  */
 
 export interface MarketExplorerProps {
@@ -38,14 +41,11 @@ const VENUE_OPTIONS: { id: VenueId; label: string }[] = [
 ];
 
 export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
-  const [query, setQuery] = useState('');
-  const [sectors, setSectors] = useState<string[]>([]);
-  const [assetClasses, setAssetClasses] = useState<AssetClass[]>([]);
-  const [venues, setVenues] = useState<VenueId[]>([]);
-  const [multiVenueOnly, setMultiVenueOnly] = useState(false);
-  const [sort, setSort] = useState<SortKey>('volume');
+  const { filters, sort, queryInput, setQueryInput, setFilters, setSort, reset, isDefault } =
+    useMarketViewState();
 
-  const deferredQuery = useDeferredValue(query);
+  const { sectors, assetClasses, venues, multiVenueOnly } = filters;
+  const deferredQuery = useDeferredValue(queryInput);
 
   const sectorOptions = useMemo(() => sectorFacets(assets), [assets]);
   const classOptions = useMemo(() => assetClassFacets(assets), [assets]);
@@ -57,38 +57,16 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
 
   const results = useMemo(
     () =>
-      selectAssets(assets, {
-        filters: {
-          ...EMPTY_FILTERS,
-          query: deferredQuery,
-          sectors,
-          assetClasses,
-          venues,
-          multiVenueOnly,
-        },
-        sort: effectiveSort,
-      }),
-    [assets, deferredQuery, sectors, assetClasses, venues, multiVenueOnly, effectiveSort],
+      selectAssets(assets, { filters: { ...filters, query: deferredQuery }, sort: effectiveSort }),
+    [assets, filters, deferredQuery, effectiveSort],
   );
 
   // Counted over the results, not the universe: the old version read the facet
   // off `assets`, so it said "13 countries" even when nothing matched.
   const countryOptions = useMemo(() => countryFacets(results), [results]);
 
-  const toggle = <T,>(list: T[], value: T, set: (next: T[]) => void) => {
-    set(list.includes(value) ? list.filter((item) => item !== value) : [...list, value]);
-  };
-
-  const hasFilters =
-    sectors.length > 0 || assetClasses.length > 0 || venues.length > 0 || multiVenueOnly || query;
-
-  const reset = () => {
-    setQuery('');
-    setSectors([]);
-    setAssetClasses([]);
-    setVenues([]);
-    setMultiVenueOnly(false);
-  };
+  const toggle = <T,>(list: readonly T[], value: T): T[] =>
+    list.includes(value) ? list.filter((item) => item !== value) : [...list, value];
 
   return (
     <>
@@ -120,8 +98,8 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
           <input
             className="mr-input"
             type="search"
-            value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            value={queryInput}
+            onChange={(event) => setQueryInput(event.target.value)}
             placeholder="Search ticker, company, sector or mint…"
             aria-label="Search markets"
           />
@@ -151,7 +129,7 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
             type="button"
             className="mr-chip"
             aria-pressed={venues.includes(venue.id)}
-            onClick={() => toggle(venues, venue.id, setVenues)}
+            onClick={() => setFilters({ venues: toggle(venues, venue.id) })}
           >
             {venue.label}
           </button>
@@ -161,13 +139,13 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
           type="button"
           className="mr-chip"
           aria-pressed={multiVenueOnly}
-          onClick={() => setMultiVenueOnly((value) => !value)}
+          onClick={() => setFilters({ multiVenueOnly: !multiVenueOnly })}
           title="Show only assets listed on more than one venue — the cross-venue comparison view"
         >
           Multi-venue
         </button>
 
-        {hasFilters && (
+        {!isDefault && (
           <button type="button" className="mr-btn" onClick={reset}>
             Clear
           </button>
@@ -189,7 +167,9 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
             className="mr-chip"
             aria-pressed={assetClasses.includes(facet.value as AssetClass)}
             aria-label={`${facet.value}, ${facet.count} markets`}
-            onClick={() => toggle(assetClasses, facet.value as AssetClass, setAssetClasses)}
+            onClick={() =>
+              setFilters({ assetClasses: toggle(assetClasses, facet.value as AssetClass) })
+            }
           >
             <span aria-hidden="true">{facet.value}</span>
             <span className="mr-chip-count" aria-hidden="true">
@@ -218,7 +198,7 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
             className="mr-chip"
             aria-pressed={sectors.includes(facet.value)}
             aria-label={`${facet.value}, ${facet.count} markets`}
-            onClick={() => toggle(sectors, facet.value, setSectors)}
+            onClick={() => setFilters({ sectors: toggle(sectors, facet.value) })}
           >
             <span aria-hidden="true">{facet.value}</span>
             <span className="mr-chip-count" aria-hidden="true">
@@ -248,8 +228,8 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
         <EmptyState
           title="No markets match"
           hint={
-            query.trim()
-              ? `Nothing in the index matches “${query.trim()}”.`
+            queryInput.trim()
+              ? `Nothing in the index matches “${queryInput.trim()}”.`
               : 'The active filters exclude every market.'
           }
           action={
