@@ -1,5 +1,13 @@
-import { aggregateVolume24h, formatCompactUsd, primaryListing } from '@marketroom/core';
+import {
+  aggregateVolume24h,
+  bestContrastExample,
+  formatCompactUsd,
+  marketTotals,
+  primaryListing,
+} from '@marketroom/core';
+import { Hero } from '@/components/Hero';
 import { MarketExplorer } from '@/components/MarketExplorer';
+import { MarketPulse } from '@/components/MarketPulse';
 import { VenueHealth } from '@/components/VenueHealth';
 import { getSnapshot, getSparklineData } from '@/lib/data';
 
@@ -53,50 +61,27 @@ export default async function MarketsPage({
 
   const sparklines = await getSparklineData(topListings);
 
-  const totalVolume = snapshot.assets.reduce(
-    (sum, view) => sum + (aggregateVolume24h(view) ?? 0),
-    0,
-  );
-  const multiVenue = snapshot.assets.filter((view) => view.listings.length > 1).length;
+  const totals = marketTotals(snapshot.assets);
   const venueCount = snapshot.venues.filter((venue) => venue.ok).length;
+
+  // Picked from live data: the most liquid asset whose venues are genuinely
+  // different products. Omitted entirely if none qualifies — the hero never
+  // fabricates an example.
+  const contrast = bestContrastExample(snapshot.assets);
 
   return (
     <div className="mr-container">
-      <section style={{ marginBottom: 26 }}>
-        <h1
-          style={{
-            margin: '0 0 8px',
-            fontSize: 'var(--mr-text-2xl)',
-            fontWeight: 600,
-            letterSpacing: '-0.02em',
-          }}
-        >
-          Every tokenized equity, across every venue
-        </h1>
-        <p
-          style={{
-            margin: 0,
-            maxWidth: '68ch',
-            color: 'var(--mr-text-muted)',
-            fontSize: 'var(--mr-text-base)',
-            lineHeight: 1.6,
-          }}
-        >
-          The same ticker can hide very different products — a leveraged perpetual, or a
-          custody-backed token you can actually redeem. Marketroom indexes both, side by side, with
-          live prices and the structural differences made explicit.
-        </p>
-      </section>
+      <Hero example={contrast} />
 
       {/* A description list, not four pairs of divs: these are label/value
           pairs, and the markup should say so — otherwise a screen reader reads
           eight unrelated strings. */}
-      <dl className="mr-stat-row" style={{ margin: '0 0 22px' }}>
-        <StatCell label="Markets indexed" value={String(snapshot.assets.length)} />
-        <StatCell label="24h volume" value={formatCompactUsd(totalVolume)} />
+      <dl className="mr-stat-row" style={{ margin: '0 0 26px' }}>
+        <StatCell label="Markets indexed" value={String(totals.assetCount)} />
+        <StatCell label="24h volume" value={formatCompactUsd(totals.volume24hUsd)} />
         <StatCell
           label="On 2+ venues"
-          value={String(multiVenue)}
+          value={String(totals.multiVenueCount)}
           hint="Assets listed on both Hyperliquid and Solana — the cross-venue comparison set"
         />
         <StatCell
@@ -105,6 +90,10 @@ export default async function MarketsPage({
           hint="Venues currently responding to data requests"
         />
       </dl>
+
+      {/* The layer between the hero and the raw table. Without it the reader
+          has to derive every insight from 111 rows themselves. */}
+      <MarketPulse assets={snapshot.assets} />
 
       <VenueHealth venues={snapshot.venues} />
 

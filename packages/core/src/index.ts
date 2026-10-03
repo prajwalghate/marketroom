@@ -4,3 +4,4 @@ export * from './format';
 export * from './search';
 export * from './urlState';
 export * from './costOfExposure';
+export * from './insights';

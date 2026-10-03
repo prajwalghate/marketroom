@@ -887,3 +887,263 @@
   color: var(--mr-text);
   border-color: var(--mr-border-strong);
 }
+
+/* ── Hero ────────────────────────────────────────────────────────────────── */
+
+.mr-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 420px);
+  gap: 40px;
+  align-items: start;
+  padding-bottom: 32px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid var(--mr-border);
+}
+
+.mr-eyebrow {
+  margin: 0 0 12px;
+  font-family: var(--mr-font-mono);
+  font-size: var(--mr-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--mr-text-subtle);
+}
+
+.mr-hero-title {
+  margin: 0 0 14px;
+  font-size: clamp(1.9rem, 4.2vw, 2.9rem);
+  line-height: 1.08;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+}
+
+.mr-hero-sub {
+  margin: 0;
+  max-width: 54ch;
+  font-size: var(--mr-text-md);
+  line-height: 1.65;
+  color: var(--mr-text-muted);
+}
+
+/* ── Live contrast panel: the thesis, demonstrated ───────────────────────── */
+
+.mr-contrast {
+  display: block;
+  padding: 15px;
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-contrast:hover {
+  border-color: var(--mr-border-strong);
+}
+
+.mr-contrast-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 13px;
+}
+
+.mr-contrast-ticker {
+  font-size: var(--mr-text-md);
+  font-weight: 600;
+}
+
+.mr-contrast-name {
+  margin-left: 8px;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-subtle);
+}
+
+/* A hairline between the two sides carries the comparison better than two
+   bordered cards, which would read as unrelated. */
+.mr-contrast-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+.mr-contrast-side + .mr-contrast-side {
+  padding-left: 14px;
+  border-left: 1px solid var(--mr-border);
+}
+
+.mr-contrast-venue {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-bottom: 8px;
+}
+
+.mr-contrast-price {
+  font-size: var(--mr-text-xl);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+.mr-contrast-rights {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 9px 0;
+  font-size: var(--mr-text-2xs);
+}
+
+.mr-right-yes {
+  color: var(--mr-up);
+}
+
+.mr-right-no {
+  color: var(--mr-text-subtle);
+}
+
+.mr-contrast-note {
+  margin: 0;
+  font-size: var(--mr-text-2xs);
+  line-height: 1.5;
+  color: var(--mr-text-subtle);
+}
+
+.mr-contrast-change {
+  display: block;
+  margin-top: 7px;
+  font-family: var(--mr-font-mono);
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+
+.mr-contrast-cta {
+  display: block;
+  margin-top: 13px;
+  padding-top: 11px;
+  border-top: 1px solid var(--mr-border-subtle);
+  font-size: var(--mr-text-xs);
+  color: var(--mr-accent);
+}
+
+/* ── Market pulse ────────────────────────────────────────────────────────── */
+
+.mr-pulse {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 30px;
+}
+
+.mr-pulse-panel {
+  min-width: 0;
+}
+
+.mr-pulse-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mr-pulse-title {
+  margin: 0;
+  font-size: var(--mr-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mr-text-subtle);
+}
+
+.mr-pulse-more {
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+  text-decoration: none;
+}
+
+.mr-pulse-more:hover {
+  color: var(--mr-accent);
+}
+
+.mr-pulse-hint {
+  margin: 3px 0 9px;
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+
+.mr-pulse-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--mr-border-subtle);
+}
+
+.mr-pulse-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 38px;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--mr-border-subtle);
+  text-decoration: none;
+  color: inherit;
+  font-size: var(--mr-text-xs);
+}
+
+.mr-pulse-row:hover {
+  background: var(--mr-surface-1);
+}
+
+.mr-pulse-id {
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-width: 0;
+}
+
+.mr-pulse-symbol {
+  font-weight: 600;
+}
+
+.mr-pulse-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--mr-text-subtle);
+  font-size: var(--mr-text-2xs);
+}
+
+.mr-pulse-muted {
+  color: var(--mr-text-muted);
+}
+
+.mr-pulse-quiet {
+  margin: 0;
+  padding: 14px 0;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-subtle);
+  border-top: 1px solid var(--mr-border-subtle);
+}
+
+@media (max-width: 900px) {
+  .mr-hero {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
+}
+
+@media (max-width: 520px) {
+  .mr-contrast-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mr-contrast-side + .mr-contrast-side {
+    padding-left: 0;
+    padding-top: 14px;
+    border-left: none;
+    border-top: 1px solid var(--mr-border);
+  }
+}
