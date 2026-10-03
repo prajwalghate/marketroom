@@ -806,7 +806,7 @@
   margin-bottom: 6px;
 }
 
-.mr-range {
+.mr-slider {
   width: 100%;
   height: 20px;
   appearance: none;
@@ -814,13 +814,13 @@
   cursor: pointer;
 }
 
-.mr-range::-webkit-slider-runnable-track {
+.mr-slider::-webkit-slider-runnable-track {
   height: 4px;
   border-radius: var(--mr-radius-full);
   background: var(--mr-surface-3);
 }
 
-.mr-range::-moz-range-track {
+.mr-slider::-moz-range-track {
   height: 4px;
   border-radius: var(--mr-radius-full);
   background: var(--mr-surface-3);
@@ -828,7 +828,7 @@
 
 /* The thumb is the one place the accent is allowed on a non-focus control:
    it IS the interactive affordance. */
-.mr-range::-webkit-slider-thumb {
+.mr-slider::-webkit-slider-thumb {
   appearance: none;
   width: 14px;
   height: 14px;
@@ -838,7 +838,7 @@
   border: none;
 }
 
-.mr-range::-moz-range-thumb {
+.mr-slider::-moz-range-thumb {
   width: 14px;
   height: 14px;
   border-radius: var(--mr-radius-full);
@@ -1453,4 +1453,81 @@
   padding-top: 11px;
   padding-bottom: 11px;
   font-size: var(--mr-text-base);
+}
+
+/* ── Chart range control ─────────────────────────────────────────────────── */
+
+.mr-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mr-range {
+  display: inline-flex;
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  overflow: hidden;
+}
+
+.mr-range-btn {
+  position: relative;
+  min-width: 42px;
+  min-height: 30px;
+  padding: 4px 10px;
+  font-family: var(--mr-font-mono);
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--mr-border);
+  cursor: pointer;
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    background var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-range-btn:first-child {
+  border-left: none;
+}
+
+.mr-range-btn:hover {
+  color: var(--mr-text);
+  background: var(--mr-surface-2);
+}
+
+.mr-range-btn[aria-pressed='true'] {
+  color: var(--mr-text);
+  background: var(--mr-surface-3);
+}
+
+/* Marks the selection without tinting the whole control. */
+.mr-range-btn[aria-pressed='true']::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 2px;
+  background: var(--mr-accent);
+}
+
+.mr-chart-status {
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+
+.mr-chart-empty {
+  margin: 0;
+  padding: 36px 20px;
+  text-align: center;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text-subtle);
+  background: var(--mr-surface-1);
+  border: 1px dashed var(--mr-border);
+  border-radius: var(--mr-radius-lg);
 }

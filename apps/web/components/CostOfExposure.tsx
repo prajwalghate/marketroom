@@ -89,7 +89,7 @@ export function CostOfExposure({ symbol, inputsBySize, sizes }: CostOfExposurePr
           </div>
           <input
             type="range"
-            className="mr-range"
+            className="mr-slider"
             min={0}
             max={DAY_STOPS.length - 1}
             step={1}

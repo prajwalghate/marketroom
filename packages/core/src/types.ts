@@ -284,3 +284,41 @@ export interface MarketSnapshot {
   readonly venues: readonly VenueStatus[];
   readonly generatedAt: number;
 }
+
+// ---------------------------------------------------------------------------
+// Chart ranges
+// ---------------------------------------------------------------------------
+
+/**
+ * A selectable window of price history.
+ *
+ * Each range pairs a lookback with an interval chosen to keep the bar count in
+ * a readable band — roughly 150–400 bars. A 1-year window at 1h would be 8,760
+ * bars: slower to fetch, slower to draw, and illegible at chart width.
+ */
+export interface CandleRange {
+  readonly id: string;
+  /** Short label for the control. */
+  readonly label: string;
+  /** Spoken form, since "1D" alone is ambiguous to a screen reader. */
+  readonly description: string;
+  readonly interval: Interval;
+  readonly lookbackMs: number;
+}
+
+const HOUR = 60 * 60 * 1000;
+const DAY = 24 * HOUR;
+
+export const CANDLE_RANGES: readonly CandleRange[] = [
+  { id: '1d', label: '1D', description: 'Past day', interval: '5m', lookbackMs: DAY },
+  { id: '1w', label: '1W', description: 'Past week', interval: '1h', lookbackMs: 7 * DAY },
+  { id: '1m', label: '1M', description: 'Past month', interval: '4h', lookbackMs: 30 * DAY },
+  { id: '3m', label: '3M', description: 'Past 3 months', interval: '1d', lookbackMs: 90 * DAY },
+  { id: '1y', label: '1Y', description: 'Past year', interval: '1d', lookbackMs: 365 * DAY },
+];
+
+/** The range the page server-renders, so the first paint needs no request. */
+export const DEFAULT_CANDLE_RANGE = '1w';
+
+export const candleRangeById = (id: string): CandleRange | undefined =>
+  CANDLE_RANGES.find((range) => range.id === id);

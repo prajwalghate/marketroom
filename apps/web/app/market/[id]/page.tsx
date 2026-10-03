@@ -1,5 +1,6 @@
 import {
   aggregateVolume24h,
+  DEFAULT_CANDLE_RANGE,
   consolidatedPrice,
   countryFlag,
   formatCompactUsd,
@@ -7,7 +8,6 @@ import {
   formatPrice,
   primaryListing,
   priceChange24h,
-  seriesChange,
   venueSpread,
 } from '@marketroom/core';
 import { assetById } from '@marketroom/catalog';
@@ -15,12 +15,12 @@ import { Badge, PriceChange, SectionTitle } from '@marketroom/ui';
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { CandleChart } from '@/components/CandleChart';
+import { PriceChart } from '@/components/PriceChart';
 import { ExposurePanel, ExposurePanelFallback } from '@/components/ExposurePanel';
 import { ProductStructure, RiskCallout } from '@/components/ProductStructure';
 import { DepthPanel } from '@/components/DepthPanel';
 import { VenueComparison } from '@/components/VenueComparison';
-import { getAssetView, getCandles, getOrderBook, getSnapshot } from '@/lib/data';
+import { getAssetView, getCandlesForRange, getOrderBook, getSnapshot } from '@/lib/data';
 import { Suspense } from 'react';
 
 /**
@@ -73,11 +73,12 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
   // parallel so the slowest one bounds the page, not the sum.
   const chartable = view.listings.find(({ listing }) => listing.venue === 'hyperliquid')?.listing;
   const [candles, book] = await Promise.all([
-    chartable ? getCandles(chartable, '1h') : Promise.resolve([]),
+    // Fetched through the range table, not a separate fixed lookback — the
+    // chart labels this as the default range, and a 14-day series captioned
+    // "past week" is the label lying about its own data.
+    chartable ? getCandlesForRange(chartable, DEFAULT_CANDLE_RANGE) : Promise.resolve([]),
     chartable ? getOrderBook(chartable) : Promise.resolve(null),
   ]);
-
-  const chartChange = seriesChange(candles);
 
   const snapshot = await getSnapshot();
   const peers = asset.peers
@@ -180,21 +181,13 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
         <div style={{ minWidth: 0 }}>
           {/* ── Chart ──────────────────────────────────────────────────── */}
           <section style={{ marginBottom: 22 }}>
-            <SectionTitle
-              action={
-                candles.length > 1 && (
-                  <span style={{ fontSize: 'var(--mr-text-xs)', color: 'var(--mr-text-subtle)' }}>
-                    {/* Derived, not hardcoded: the previous copy appended a
-                        dangling "·" whenever the series had no net change. */}
-                    Hourly · last {Math.max(1, Math.round(candles.length / 24))} days
-                  </span>
-                )
-              }
-            >
-              Price
-            </SectionTitle>
+            <SectionTitle>Price</SectionTitle>
             {candles.length > 1 ? (
-              <CandleChart candles={candles} direction={chartChange?.direction ?? 'flat'} />
+              /* The default range is server-rendered, so the chart is in the
+                 first paint; other ranges load on demand. Pre-rendering all of
+                 them would cost 110 pages x 5 upstream calls at build time for
+                 windows most readers never open. */
+              <PriceChart assetId={asset.id} initialCandles={candles} />
             ) : (
               /* Candles come from the perp venue only. When there is no perp
                  listing — or the venue is down — the section used to vanish

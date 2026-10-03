@@ -10,7 +10,7 @@ import type {
   OrderBook,
   VenueCostInputs,
 } from '@marketroom/core';
-import { bookSpread } from '@marketroom/core';
+import { bookSpread, candleRangeById } from '@marketroom/core';
 import { unstable_cache } from 'next/cache';
 
 /**
@@ -213,4 +213,29 @@ export const getExposureInputs = unstable_cache(
   },
   ['exposure-inputs'],
   { revalidate: 120, tags: ['exposure'] },
+);
+
+/**
+ * Candles for a named range.
+ *
+ * Separate from `getCandles` because the range carries its own interval: a
+ * year of 1h bars is 8,760 points, which is slow to fetch and illegible to
+ * draw. The range table picks an interval that keeps every window in a
+ * readable band.
+ */
+export const getCandlesForRange = unstable_cache(
+  async (listing: Listing, rangeId: string): Promise<Candle[]> => {
+    const range = candleRangeById(rangeId);
+    if (!range || listing.venue !== 'hyperliquid') return [];
+
+    const adapter = new HyperliquidAdapter(config.hyperliquid);
+    try {
+      return await adapter.fetchCandles(listing, range.interval, range.lookbackMs);
+    } catch {
+      // A chart failing must not take down the page around it.
+      return [];
+    }
+  },
+  ['candles-range'],
+  { revalidate: 30, tags: ['candles'] },
 );
