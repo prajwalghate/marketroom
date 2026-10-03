@@ -137,6 +137,22 @@ export function CandleChart({ candles, direction, height = 300 }: CandleChartPro
 
     chart.timeScale().fitContent();
 
+    // Harden the library's attribution link.
+    //
+    // lightweight-charts injects a TradingView logo anchor with
+    // `target="_blank"` and no `rel`, which leaves the opened page able to
+    // reach back through `window.opener`. It also ships with no text content —
+    // only a `title`, which screen readers announce inconsistently — so it
+    // reads as an unnamed link.
+    //
+    // The licence requires the attribution stays, so it is fixed rather than
+    // removed.
+    const attribution = container.querySelector<HTMLAnchorElement>('a[href*="tradingview"]');
+    if (attribution) {
+      attribution.rel = 'noopener noreferrer';
+      attribution.setAttribute('aria-label', 'Charting by TradingView (opens in a new tab)');
+    }
+
     // Keep the canvas sized to its container across layout changes.
     const observer = new ResizeObserver((entries) => {
       const width = entries[0]?.contentRect.width;
