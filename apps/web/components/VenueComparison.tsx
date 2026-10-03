@@ -60,6 +60,7 @@ export function VenueComparison({ view }: { view: AssetView }) {
           display: 'grid',
           gridTemplateColumns: `repeat(auto-fit, minmax(260px, 1fr))`,
           gap: 12,
+          alignItems: 'start',
         }}
       >
         {view.listings.map(({ listing, quote }) => {
@@ -187,8 +188,13 @@ export function VenueComparison({ view }: { view: AssetView }) {
                   reader is most likely to compare across the cards. */}
               <p
                 style={{
-                  margin: 'auto 0 0',
-                  paddingTop: 9,
+                  // Deliberately NOT `margin-top: auto`. That was added to align
+                  // the two Trade buttons, which worked while both cards held
+                  // the same blocks. A perp has no redemption, backing or mint
+                  // address, so the cards now differ by several hundred pixels
+                  // and the auto margin stretched the shorter one into a void.
+                  // Natural flow beats alignment that cannot hold.
+                  margin: '9px 0 0',
                   fontSize: 'var(--mr-text-2xs)',
                   color: 'var(--mr-text-subtle)',
                   lineHeight: 1.5,

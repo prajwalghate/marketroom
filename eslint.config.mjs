@@ -156,6 +156,11 @@ export default tseslint.config(
         AbortSignal: 'readonly',
         setTimeout: 'readonly',
         clearTimeout: 'readonly',
+        // Used inside `page.evaluate()` callbacks, which run in the browser
+        // rather than in Node — ESLint cannot tell the two apart.
+        window: 'readonly',
+        document: 'readonly',
+        localStorage: 'readonly',
       },
     },
     rules: {

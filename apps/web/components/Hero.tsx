@@ -1,3 +1,5 @@
+'use client';
+
 import type { AssetView } from '@marketroom/core';
 import { formatPercentAbs, formatPrice, priceChange24h, venueSpread } from '@marketroom/core';
 import { Badge, InstrumentBadge, VenueBadge } from '@marketroom/ui';
@@ -15,7 +17,15 @@ import Link from 'next/link';
  * number here is real and from the same snapshot as the table below. If no
  * asset currently qualifies, the panel is omitted rather than faked.
  */
-export function Hero({ example }: { example: AssetView | null }) {
+export function Hero({
+  example,
+  queryInput,
+  onQueryChange,
+}: {
+  example: AssetView | null;
+  queryInput: string;
+  onQueryChange: (value: string) => void;
+}) {
   return (
     <section className="mr-hero">
       <div className="mr-hero-copy">
@@ -26,6 +36,23 @@ export function Hero({ example }: { example: AssetView | null }) {
           collateral-backed claim on another. Marketroom compares price, structure and holder rights
           across both.
         </p>
+
+        {/* Search belongs here rather than down with the filters: on a market
+            index it is the primary action, not a refinement. It also fills the
+            column, which otherwise ended well short of the panel beside it. */}
+        <div className="mr-hero-search">
+          <span aria-hidden="true" className="mr-search-icon">
+            ⌕
+          </span>
+          <input
+            className="mr-input"
+            type="search"
+            value={queryInput}
+            onChange={(event) => onQueryChange(event.target.value)}
+            placeholder="Search ticker, company, sector or mint…"
+            aria-label="Search markets"
+          />
+        </div>
       </div>
 
       {example && <ContrastPanel view={example} />}

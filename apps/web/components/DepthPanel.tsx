@@ -1,5 +1,6 @@
 import type { OrderBook } from '@marketroom/core';
-import { bookSpread, formatBps, formatPrice, formatRelativeTime } from '@marketroom/core';
+import { bookSpread, formatBps, formatPrice } from '@marketroom/core';
+import { RelativeTime } from './RelativeTime';
 import { VisuallyHidden } from '@marketroom/ui';
 
 /**
@@ -106,7 +107,7 @@ export function DepthPanel({ book }: { book: OrderBook }) {
           textAlign: 'right',
         }}
       >
-        Snapshot · {formatRelativeTime(book.observedAt)}
+        Snapshot · <RelativeTime epochMs={book.observedAt} />
       </div>
     </div>
   );

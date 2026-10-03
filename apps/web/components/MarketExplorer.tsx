@@ -30,8 +30,7 @@ export interface MarketExplorerProps {
 }
 
 export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
-  const { filters, sort, queryInput, setQueryInput, setFilters, setSort, reset, isDefault } =
-    useMarketViewState();
+  const { filters, sort, queryInput, setFilters, setSort, reset, isDefault } = useMarketViewState();
 
   const deferredQuery = useDeferredValue(queryInput);
 
@@ -59,14 +58,12 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
       <FilterBar
         filters={filters}
         sort={effectiveSort}
-        queryInput={queryInput}
         sectorFacets={sectorOptions}
         countryFacets={countryOptions}
         classFacets={classOptions}
         resultCount={results.length}
         totalCount={assets.length}
         isDefault={isDefault}
-        onQueryChange={setQueryInput}
         onFiltersChange={setFilters}
         onSortChange={setSort}
         onReset={reset}

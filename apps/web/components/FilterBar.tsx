@@ -27,14 +27,12 @@ import type { ReactNode } from 'react';
 export interface FilterBarProps {
   filters: MarketFilters;
   sort: SortKey;
-  queryInput: string;
   sectorFacets: readonly Facet[];
   countryFacets: readonly Facet[];
   classFacets: readonly Facet[];
   resultCount: number;
   totalCount: number;
   isDefault: boolean;
-  onQueryChange: (value: string) => void;
   onFiltersChange: (next: Partial<MarketFilters>) => void;
   onSortChange: (next: SortKey) => void;
   onReset: () => void;
@@ -65,14 +63,12 @@ function venuePatch(choice: VenueChoice): Partial<MarketFilters> {
 export function FilterBar({
   filters,
   sort,
-  queryInput,
   sectorFacets,
   countryFacets,
   classFacets,
   resultCount,
   totalCount,
   isDefault,
-  onQueryChange,
   onFiltersChange,
   onSortChange,
   onReset,
@@ -84,22 +80,7 @@ export function FilterBar({
 
   return (
     <div className="mr-filters">
-      {/* ── Search + sort ─────────────────────────────────────────────── */}
       <div className="mr-filter-top">
-        <div className="mr-search">
-          <span aria-hidden="true" className="mr-search-icon">
-            ⌕
-          </span>
-          <input
-            className="mr-input"
-            type="search"
-            value={queryInput}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Search ticker, company, sector or mint…"
-            aria-label="Search markets"
-          />
-        </div>
-
         <label className="mr-field">
           <span className="mr-field-label">Sort</span>
           <select

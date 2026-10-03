@@ -1441,3 +1441,16 @@
   color: var(--mr-text);
   font-weight: 600;
 }
+
+/* Primary search, in the hero. */
+.mr-hero-search {
+  position: relative;
+  margin-top: 22px;
+  max-width: 460px;
+}
+
+.mr-hero-search .mr-input {
+  padding-top: 11px;
+  padding-bottom: 11px;
+  font-size: var(--mr-text-base);
+}

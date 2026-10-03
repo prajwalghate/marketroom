@@ -1,5 +1,5 @@
 import type { VenueStatus } from '@marketroom/core';
-import { formatRelativeTime } from '@marketroom/core';
+import { RelativeTime } from './RelativeTime';
 
 /**
  * Venue data health.
@@ -40,7 +40,7 @@ export function VenueHealth({ venues }: { venues: readonly VenueStatus[] }) {
           <span aria-hidden="true">⚠</span>
           <span>
             {stale.map((venue) => venue.venue).join(', ')} is not responding — showing the last
-            known prices, last updated {formatRelativeTime(stale[0]!.fetchedAt)}.
+            known prices, last updated <RelativeTime epochMs={stale[0]!.fetchedAt} />.
           </span>
         </div>
       )}

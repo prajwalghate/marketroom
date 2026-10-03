@@ -5,7 +5,7 @@ import {
   marketTotals,
   primaryListing,
 } from '@marketroom/core';
-import { Hero } from '@/components/Hero';
+import { HomeHero } from '@/components/HomeHero';
 import { MarketExplorer } from '@/components/MarketExplorer';
 import { MarketPulse } from '@/components/MarketPulse';
 import { VenueHealth } from '@/components/VenueHealth';
@@ -71,7 +71,7 @@ export default async function MarketsPage({
 
   return (
     <div className="mr-container">
-      <Hero example={contrast} />
+      <HomeHero example={contrast} />
 
       {/* A description list, not four pairs of divs: these are label/value
           pairs, and the markup should say so — otherwise a screen reader reads

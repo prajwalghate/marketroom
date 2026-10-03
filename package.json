@@ -17,7 +17,8 @@
     "catalog:check": "pnpm --filter @marketroom/catalog run check",
     "prepare": "husky || true",
     "contrast": "turbo run contrast",
-    "links:check": "pnpm --filter @marketroom/adapters run links:check"
+    "links:check": "pnpm --filter @marketroom/adapters run links:check",
+    "screenshots": "pnpm --filter @marketroom/web run screenshots"
   },
   "devDependencies": {
     "@eslint/js": "^9.18.0",
@@ -26,6 +27,7 @@
     "eslint-config-prettier": "^9.1.0",
     "husky": "^9.1.7",
     "lint-staged": "^15.3.0",
+    "playwright": "^1.49.1",
     "prettier": "^3.4.2",
     "prettier-plugin-tailwindcss": "^0.6.9",
     "turbo": "^2.3.3",
