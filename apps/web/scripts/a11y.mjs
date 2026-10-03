@@ -20,8 +20,54 @@ import AxeBuilder from '@axe-core/playwright';
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:3000';
 
+/**
+ * Waits for the search panel to be fully settled: present, done thinking, and
+ * done animating.
+ *
+ * The animation part is not pedantry. The panel fades in over 150ms, and axe
+ * sampling mid-fade measures *blended* colours — it reported `--mr-down` as
+ * #ac6864 on #16191d, neither of which is a token, and called it a 4.12
+ * failure. The settled element passes. Auditing a transient frame produces
+ * failures you cannot fix by changing any colour.
+ */
+const panelSettled = (page) =>
+  page.waitForFunction(
+    () => {
+      const el = document.querySelector('.mr-combo-panel');
+      if (!el || el.querySelector('.mr-combo-skeleton')) return false;
+      return el.getAnimations({ subtree: true }).every((a) => a.playState === 'finished');
+    },
+    null,
+    { timeout: 10_000 },
+  );
+
+/**
+ * `prepare` runs after load, for states that only exist after an interaction.
+ * An overlay audited only while closed is an overlay that is never audited.
+ */
 const PAGES = [
   { name: 'home', path: '/' },
+  {
+    name: 'home-search-open',
+    path: '/',
+    prepare: async (page) => {
+      await page.getByRole('combobox', { name: 'Search markets' }).click();
+      await page.getByRole('combobox', { name: 'Search markets' }).fill('tech');
+      await panelSettled(page);
+      await page.keyboard.press('ArrowDown');
+      await panelSettled(page);
+    },
+  },
+  {
+    name: 'home-search-empty',
+    path: '/',
+    prepare: async (page) => {
+      await page.getByRole('combobox', { name: 'Search markets' }).click();
+      await page.getByRole('combobox', { name: 'Search markets' }).fill('qqqzzz');
+      await page.waitForSelector('.mr-combo-note', { timeout: 10_000 });
+      await panelSettled(page);
+    },
+  },
   { name: 'home-filtered', path: '/?class=commodity&venue=solana' },
   { name: 'home-empty', path: '/?q=zzzznomatch' },
   { name: 'market', path: '/market/nvda' },
@@ -55,10 +101,16 @@ for (const vp of VIEWPORTS) {
 
     for (const target of PAGES) {
       // Mobile runs a subset; the same components are exercised either way.
-      if (vp.name === 'mobile' && !['home', 'market', 'trends'].includes(target.name)) continue;
+      if (
+        vp.name === 'mobile' &&
+        !['home', 'market', 'trends', 'home-search-open'].includes(target.name)
+      ) {
+        continue;
+      }
 
       await page.goto(`${BASE}${target.path}`, { waitUntil: 'networkidle', timeout: 90_000 });
       await page.waitForTimeout(3000);
+      if (target.prepare) await target.prepare(page);
 
       const results = await new AxeBuilder({ page })
         .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
@@ -73,6 +125,10 @@ for (const vp of VIEWPORTS) {
           nodes: v.nodes.length,
           sample: v.nodes[0]?.html?.slice(0, 120) ?? '',
           target: v.nodes[0]?.target?.join(' ') ?? '',
+          // The measured numbers, not just the verdict. Without these a contrast
+          // failure gives you nothing to act on but guesswork about which
+          // surface the element actually composited against.
+          data: v.nodes[0]?.any?.[0]?.data ?? null,
         });
       }
     }
@@ -151,6 +207,12 @@ for (const v of [...unique.values()].sort((a, b) => (a.impact ?? '').localeCompa
   console.log(`\n[${v.impact}] ${v.id} — ${v.help}`);
   console.log(`  where: ${v.seenIn.slice(0, 3).join(', ')}${v.seenIn.length > 3 ? ` (+${v.seenIn.length - 3})` : ''}`);
   console.log(`  target: ${v.target}`);
+  if (v.data?.contrastRatio) {
+    console.log(
+      `  measured: ${v.data.contrastRatio} (fg ${v.data.fgColor} on bg ${v.data.bgColor}, ` +
+        `${v.data.fontSize}, weight ${v.data.fontWeight}) — needs ${v.data.expectedContrastRatio}`,
+    );
+  }
   console.log(`  html: ${v.sample}`);
 }
 

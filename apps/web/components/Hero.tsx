@@ -4,6 +4,7 @@ import type { AssetView } from '@marketroom/core';
 import { formatPercentAbs, formatPrice, priceChange24h, venueSpread } from '@marketroom/core';
 import { Badge, InstrumentBadge, VenueBadge } from '@marketroom/ui';
 import Link from 'next/link';
+import { MarketSearch } from './MarketSearch';
 
 /**
  * Hero.
@@ -19,12 +20,18 @@ import Link from 'next/link';
  */
 export function Hero({
   example,
+  assets,
   queryInput,
   onQueryChange,
+  onSeeAll,
+  onNavigateAway,
 }: {
   example: AssetView | null;
+  assets: readonly AssetView[];
   queryInput: string;
   onQueryChange: (value: string) => void;
+  onSeeAll: () => void;
+  onNavigateAway: () => void;
 }) {
   return (
     <section className="mr-hero">
@@ -38,19 +45,16 @@ export function Hero({
         </p>
 
         {/* Search belongs here rather than down with the filters: on a market
-            index it is the primary action, not a refinement. It also fills the
-            column, which otherwise ended well short of the panel beside it. */}
+            index it is the primary action, not a refinement. Its results are
+            anchored to the field itself — see MarketSearch for why that is not
+            optional. */}
         <div className="mr-hero-search">
-          <span aria-hidden="true" className="mr-search-icon">
-            ⌕
-          </span>
-          <input
-            className="mr-input"
-            type="search"
-            value={queryInput}
-            onChange={(event) => onQueryChange(event.target.value)}
-            placeholder="Search ticker, company, sector or mint…"
-            aria-label="Search markets"
+          <MarketSearch
+            assets={assets}
+            query={queryInput}
+            onQueryChange={onQueryChange}
+            onSeeAll={onSeeAll}
+            onNavigateAway={onNavigateAway}
           />
         </div>
       </div>

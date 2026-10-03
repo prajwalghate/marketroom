@@ -35,6 +35,24 @@ export interface MarketViewController extends MarketViewState {
   /** The live input value — may be ahead of `filters.query` mid-type. */
   queryInput: string;
   setQueryInput: (value: string) => void;
+  /**
+   * Writes the current input to the URL now, cancelling any pending debounce.
+   *
+   * For deliberate commits — "see all results", submitting the field — where
+   * waiting out a 250ms timer after an explicit action would be a lag the user
+   * can feel.
+   */
+  commitQuery: () => void;
+  /**
+   * Drops a pending debounced write without performing it.
+   *
+   * Required before navigating to another route off the back of this input. A
+   * scheduled `replace` that lands after the reader has left is not just
+   * useless, it is actively wrong: it rewrites the URL to this page's filter
+   * state and pulls them back here. Pressing Enter on a search result inside
+   * the debounce window did exactly that.
+   */
+  cancelQueryWrite: () => void;
   setFilters: (next: Partial<MarketFilters>) => void;
   setSort: (next: SortKey) => void;
   reset: () => void;
@@ -90,6 +108,16 @@ export function useMarketViewState(): MarketViewController {
     [state, write],
   );
 
+  const commitQuery = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    write({ ...state, filters: { ...state.filters, query: queryInput } });
+  }, [queryInput, state, write]);
+
+  const cancelQueryWrite = useCallback(() => {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current);
+    debounceTimer.current = null;
+  }, []);
+
   const setFilters = useCallback(
     (next: Partial<MarketFilters>) => {
       write({ ...state, filters: { ...state.filters, query: queryInput, ...next } });
@@ -119,6 +147,8 @@ export function useMarketViewState(): MarketViewController {
     sort: state.sort,
     queryInput,
     setQueryInput,
+    commitQuery,
+    cancelQueryWrite,
     setFilters,
     setSort,
     reset,

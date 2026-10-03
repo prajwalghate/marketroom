@@ -71,7 +71,7 @@ export default async function MarketsPage({
 
   return (
     <div className="mr-container">
-      <HomeHero example={contrast} />
+      <HomeHero example={contrast} assets={snapshot.assets} />
 
       {/* A description list, not four pairs of divs: these are label/value
           pairs, and the markup should say so — otherwise a screen reader reads
@@ -97,8 +97,14 @@ export default async function MarketsPage({
 
       <VenueHealth venues={snapshot.venues} />
 
-      <h2 className="sr-only">All markets</h2>
-      <MarketExplorer assets={snapshot.assets} sparklines={sparklines} />
+      {/* `id` is the target the hero's "see all results" scrolls to, so the
+          control lands the reader on the table it just filtered. */}
+      <section id="markets" className="mr-markets" aria-labelledby="markets-heading">
+        <h2 id="markets-heading" className="sr-only">
+          All markets
+        </h2>
+        <MarketExplorer assets={snapshot.assets} sparklines={sparklines} />
+      </section>
     </div>
   );
 }

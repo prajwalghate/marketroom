@@ -1158,22 +1158,6 @@
   margin-bottom: 14px;
 }
 
-.mr-search {
-  position: relative;
-  flex: 1 1 280px;
-  min-width: 220px;
-}
-
-.mr-search-icon {
-  position: absolute;
-  left: 11px;
-  top: 50%;
-  transform: translateY(-50%);
-  color: var(--mr-text-subtle);
-  font-size: 13px;
-  pointer-events: none;
-}
-
 .mr-field {
   display: flex;
   flex-direction: column;
@@ -1437,17 +1421,284 @@
   font-weight: 600;
 }
 
-/* Primary search, in the hero. */
+/* ── Search combobox ─────────────────────────────────────────────────────── */
+
+/* Primary search, in the hero. The wrapper only positions it; the combobox
+   below owns its own stacking and overlay. */
 .mr-hero-search {
-  position: relative;
   margin-top: 22px;
   max-width: 460px;
+  /* Above the contrast panel beside it, so the open overlay is never clipped
+     or painted under the neighbouring card. */
+  position: relative;
+  z-index: 20;
 }
 
-.mr-hero-search .mr-input {
+.mr-combo {
+  position: relative;
+}
+
+.mr-combo-icon {
+  position: absolute;
+  left: 11px;
+  /* Pinned to the input's own height rather than the wrapper's: the wrapper
+     grows to contain the open panel, and a 50% offset would drift down with
+     it, leaving the icon floating in the results. */
+  top: 21px;
+  transform: translateY(-50%);
+  color: var(--mr-text-subtle);
+  font-size: 14px;
+  pointer-events: none;
+  z-index: 1;
+}
+
+.mr-combo-input {
   padding-top: 11px;
   padding-bottom: 11px;
   font-size: var(--mr-text-base);
+}
+
+/* The panel. Anchored directly under the field — the whole point of the
+   rebuild — and raised, so it reads as a layer over the page rather than
+   content that pushed the page around. */
+.mr-combo-panel {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  right: 0;
+  z-index: 60;
+  overflow: hidden;
+  /* The same surface the market table uses.
+     Measured, not chosen by eye: on `--mr-surface-raised` the muted text fell to
+     4.46 and the down-tint to 4.11 once a row highlight lifted the background.
+     Every foreground in a row — text, muted, up, down and flat — clears 4.5 on
+     this one in both themes. Elevation is carried by the border and shadow
+     instead of by a lighter fill. */
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border-strong);
+  border-radius: var(--mr-radius-lg);
+  box-shadow: var(--mr-shadow-lg);
+  animation: mr-combo-in var(--mr-duration) var(--mr-ease);
+}
+
+@keyframes mr-combo-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mr-combo-panel {
+    animation: none;
+  }
+}
+
+.mr-combo-head {
+  margin: 0;
+  padding: 9px 13px 7px;
+  font-size: var(--mr-text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mr-text-subtle);
+}
+
+.mr-combo-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px;
+  /* Sized to hold all MAX_VISIBLE rows without scrolling — the two-line row is
+     ~56px, so the earlier 336px silently clipped the last one. Still capped, so
+     the overlay can never run past the fold, which is the defect this component
+     exists to fix. */
+  max-height: 420px;
+  overflow-y: auto;
+}
+
+.mr-combo-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 7px 9px;
+  border-radius: var(--mr-radius);
+  cursor: pointer;
+}
+
+/* One highlight for both pointer and keyboard. Hover sets the active index, so
+   the two can never disagree about which row is selected.
+
+   A neutral step rather than an accent wash: tinting the row with the accent
+   moved the background toward mid-tone and dropped `--mr-down` to 4.15. The
+   accent survives as an edge marker, which costs no contrast and does not rely
+   on luminance alone to signal selection. */
+.mr-combo-option.is-active {
+  background: var(--mr-surface-2);
+  box-shadow: inset 2px 0 0 var(--mr-accent);
+}
+
+/* Identity, stacked: ticker line over company name. */
+.mr-combo-id {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.mr-combo-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.mr-combo-ticker {
+  font-size: var(--mr-text-base);
+  font-weight: 600;
+  color: var(--mr-text);
+  letter-spacing: -0.01em;
+}
+
+.mr-combo-flag {
+  font-size: 11px;
+}
+
+.mr-combo-venues {
+  flex: none;
+  padding: 1px 5px;
+  font-size: var(--mr-text-2xs);
+  font-weight: 500;
+  color: var(--mr-text-muted);
+  background: var(--mr-surface-3);
+  border-radius: var(--mr-radius-sm);
+}
+
+.mr-combo-name {
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Figures, stacked to match: price over change and volume. */
+.mr-combo-figures {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+  flex: none;
+  font-size: var(--mr-text-xs);
+}
+
+.mr-combo-sub {
+  gap: 8px;
+}
+
+.mr-combo-price {
+  font-size: var(--mr-text-sm);
+  font-weight: 500;
+  color: var(--mr-text);
+}
+
+.mr-combo-vol {
+  /* Not `--mr-text-subtle`: it measured 4.21 on the active row. */
+  color: var(--mr-text-muted);
+  min-width: 44px;
+  text-align: right;
+}
+
+/* The matched run. `mark` defaults to a black-on-yellow that belongs to no
+   palette here, so both colours are restated from tokens.
+
+   The text is full-strength, not accent: accent-coloured text on an accent
+   tint tops out at 3.45 against this surface, and stacking the mark's tint on
+   the active row's drops it to 2.86. The tint marks the match; the text stays
+   readable. */
+.mr-combo-mark {
+  background: var(--mr-accent-muted);
+  color: var(--mr-text);
+  font-weight: 600;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+
+.mr-combo-note {
+  margin: 0;
+  padding: 16px 14px;
+  font-size: var(--mr-text-sm);
+  line-height: 1.55;
+  color: var(--mr-text-muted);
+}
+
+.mr-combo-note strong {
+  color: var(--mr-text);
+  font-weight: 600;
+}
+
+.mr-combo-all {
+  display: block;
+  width: 100%;
+  padding: 10px 13px;
+  font-family: inherit;
+  font-size: var(--mr-text-xs);
+  font-weight: 500;
+  text-align: left;
+  color: var(--mr-accent);
+  /* Sits on the panel surface, separated by the rule alone. On `--mr-surface-3`
+     the accent measured 4.53 — over the floor, but too thin a margin to leave
+     a token change free to break later. */
+  background: transparent;
+  border: 0;
+  border-top: 1px solid var(--mr-border);
+  cursor: pointer;
+}
+
+.mr-combo-all:hover {
+  background: var(--mr-surface-raised);
+}
+
+/* Shown only while a list render is genuinely still pending — never as a
+   stand-in for work that already finished. */
+.mr-combo-skeleton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 9px;
+}
+
+.mr-combo-skeleton span {
+  height: 9px;
+  border-radius: var(--mr-radius-sm);
+  background: var(--mr-surface-3);
+  animation: mr-combo-pulse 1.1s var(--mr-ease) infinite;
+}
+
+.mr-combo-skeleton span:first-child {
+  width: 42%;
+}
+
+.mr-combo-skeleton span:last-child {
+  width: 18%;
+}
+
+@keyframes mr-combo-pulse {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mr-combo-skeleton span {
+    animation: none;
+  }
+}
+
+/* Scroll target for "see all results", offset past the sticky header. */
+.mr-markets {
+  scroll-margin-top: calc(var(--mr-header-height) + 18px);
 }
 
 /* ── Chart range control ─────────────────────────────────────────────────── */
