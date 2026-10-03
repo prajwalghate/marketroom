@@ -7,6 +7,8 @@ import {
   aggregateVolume24h,
   consolidatedPrice,
   countryFlag,
+  EMPTY,
+  formatPercentAbs,
   formatCompactUsd,
   formatPrice,
   primaryListing,
@@ -60,6 +62,7 @@ const COLUMNS: Column[] = [
   { key: 'volume', label: 'Volume 24h', sort: 'volume', numeric: true, hideOnPhone: true },
   { key: 'oi', label: 'Open interest', sort: 'openInterest', numeric: true, hideOnMobile: true },
   { key: 'venues', label: 'Venues', sort: 'venues', hideOnMobile: true },
+  { key: 'spread', label: 'Spread', numeric: true, hideOnMobile: true },
 ];
 
 /**
@@ -463,16 +466,24 @@ const MarketRow = memo(function MarketRow({
           {view.listings.map(({ listing }) => (
             <VenueBadge key={listing.id} venue={listing.venue} compact />
           ))}
-          {spread && spread.fraction > 0.005 && (
-            <Badge
-              tone="warn"
-              mono
-              title={`Price differs ${(spread.fraction * 100).toFixed(2)}% between venues`}
-            >
-              Δ{(spread.fraction * 100).toFixed(1)}%
-            </Badge>
-          )}
         </div>
+      </td>
+
+      {/* Spread earns its own column rather than being crowded in beside the
+          venue dots. It is the one number on this row that only exists because
+          an asset is listed twice, so burying it next to an unrelated control
+          understated it — and a per-row sentence repeated 40 times is noise.
+          The column header names the metric; the cell is just the figure. */}
+      <td data-col="spread" className="is-numeric mr-hide-sm">
+        {spread ? (
+          <Badge tone={spread.fraction > 0.01 ? 'warn' : 'neutral'} mono>
+            {formatPercentAbs(spread.fraction)}
+          </Badge>
+        ) : (
+          <span className="mr-num" style={{ color: 'var(--mr-text-subtle)' }}>
+            {EMPTY}
+          </span>
+        )}
       </td>
     </tr>
   );

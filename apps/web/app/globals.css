@@ -785,6 +785,7 @@
   .mr-table tbody td[data-col='spark'],
   .mr-table tbody td[data-col='oi'],
   .mr-table tbody td[data-col='venues'],
+  .mr-table tbody td[data-col='spread'],
   .mr-hide-xs {
     display: none;
   }
@@ -1303,4 +1304,140 @@
   .mr-filter-clear {
     margin-left: 0;
   }
+}
+
+/* ── Product structure ───────────────────────────────────────────────────── */
+
+.mr-structure-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1px;
+  background: var(--mr-border);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+  overflow: hidden;
+}
+
+.mr-structure {
+  background: var(--mr-surface-1);
+  padding: 14px 15px;
+}
+
+.mr-structure-head {
+  margin-bottom: 11px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--mr-border-subtle);
+}
+
+.mr-structure-rows {
+  margin: 0;
+}
+
+.mr-structure-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 5px 0;
+  font-size: var(--mr-text-xs);
+}
+
+.mr-structure-row + .mr-structure-row {
+  border-top: 1px solid var(--mr-border-subtle);
+}
+
+.mr-structure-row dt {
+  color: var(--mr-text-subtle);
+  white-space: nowrap;
+}
+
+.mr-structure-row dd {
+  margin: 0;
+  text-align: right;
+  color: var(--mr-text);
+  font-weight: 500;
+}
+
+/* The answers a reader must not skim past. Muted amber, not alarm red —
+   these are facts about the instrument, not errors. */
+.mr-structure-warn {
+  color: var(--mr-warn);
+}
+
+/* ── Risk callout ────────────────────────────────────────────────────────── */
+
+.mr-risk {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: var(--mr-warn-soft);
+  border-left: 3px solid var(--mr-warn);
+  border-radius: 0 var(--mr-radius) var(--mr-radius) 0;
+}
+
+.mr-risk-head {
+  margin: 0 0 6px;
+  font-size: var(--mr-text-sm);
+  font-weight: 600;
+  color: var(--mr-warn);
+}
+
+.mr-risk-body {
+  margin: 0;
+  font-size: var(--mr-text-xs);
+  line-height: 1.6;
+  color: var(--mr-text-muted);
+  max-width: 72ch;
+}
+
+.mr-risk-more {
+  margin-top: 10px;
+  font-size: var(--mr-text-xs);
+}
+
+.mr-risk-more > summary {
+  cursor: pointer;
+  color: var(--mr-text-muted);
+  list-style: none;
+}
+
+.mr-risk-more > summary::-webkit-details-marker {
+  display: none;
+}
+
+.mr-risk-more > summary::before {
+  content: '▸ ';
+  color: var(--mr-text-subtle);
+}
+
+.mr-risk-more[open] > summary::before {
+  content: '▾ ';
+}
+
+.mr-risk-more > summary:hover {
+  color: var(--mr-text);
+}
+
+.mr-risk-detail {
+  margin-top: 9px;
+  color: var(--mr-text-muted);
+  line-height: 1.65;
+  max-width: 72ch;
+}
+
+.mr-risk-detail p {
+  margin: 0 0 8px;
+}
+
+.mr-risk-detail ul {
+  margin: 0 0 8px;
+  padding-left: 18px;
+}
+
+.mr-risk-detail li {
+  margin-bottom: 5px;
+}
+
+.mr-risk-detail strong {
+  color: var(--mr-text);
+  font-weight: 600;
 }

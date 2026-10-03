@@ -17,6 +17,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { CandleChart } from '@/components/CandleChart';
 import { ExposurePanel, ExposurePanelFallback } from '@/components/ExposurePanel';
+import { ProductStructure, RiskCallout } from '@/components/ProductStructure';
 import { DepthPanel } from '@/components/DepthPanel';
 import { VenueComparison } from '@/components/VenueComparison';
 import { getAssetView, getCandles, getOrderBook, getSnapshot } from '@/lib/data';
@@ -217,13 +218,14 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
             )}
           </section>
 
-          {/* Streamed: measuring execution cost is slow and supplementary, so it
-              must not hold back the price, chart or comparison above it. */}
-          {view.listings.length > 1 && (
-            <Suspense fallback={<ExposurePanelFallback />}>
-              <ExposurePanel view={view} />
-            </Suspense>
-          )}
+          {/* ── What this product actually is ──────────────────────────── */}
+          {/* Placed above price comparison deliberately: the structural facts
+              change what a price even means, so they should be read first. */}
+          <section style={{ marginBottom: 22 }}>
+            <SectionTitle>Product structure</SectionTitle>
+            <ProductStructure view={view} />
+            <RiskCallout view={view} />
+          </section>
 
           {/* ── Cross-venue comparison — the product thesis ────────────── */}
           <section style={{ marginBottom: 22 }}>
@@ -240,6 +242,14 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
             </SectionTitle>
             <VenueComparison view={view} />
           </section>
+
+          {/* Streamed: measuring execution cost is slow and supplementary, so it
+              must not hold back the price, chart or comparison above it. */}
+          {view.listings.length > 1 && (
+            <Suspense fallback={<ExposurePanelFallback />}>
+              <ExposurePanel view={view} />
+            </Suspense>
+          )}
 
           {/* ── Editorial ──────────────────────────────────────────────── */}
           <section style={{ marginBottom: 22 }}>
