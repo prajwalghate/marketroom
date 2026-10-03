@@ -18,9 +18,11 @@
     "prepare": "husky || true",
     "contrast": "turbo run contrast",
     "links:check": "pnpm --filter @marketroom/adapters run links:check",
-    "screenshots": "pnpm --filter @marketroom/web run screenshots"
+    "screenshots": "pnpm --filter @marketroom/web run screenshots",
+    "a11y": "pnpm --filter @marketroom/web run a11y"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.1",
     "@eslint/js": "^9.18.0",
     "@types/node": "^22.10.5",
     "eslint": "^9.18.0",

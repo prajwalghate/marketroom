@@ -102,8 +102,8 @@
      measured 8.09:1 on --mr-bg against the light theme's 5.1:1, so a PERP badge
      shouted in dark and whispered in light. 6.4:1 matches the two themes and is
      still well clear of the gate. */
-  --mr-warn: #b28f23;
-  --mr-warn-soft: rgba(178, 143, 35, 0.13);
+  --mr-warn: #bd992a;
+  --mr-warn-soft: rgba(189, 153, 42, 0.13);
   --mr-danger: #c47570;
   --mr-ok: #4e9e78;
 
@@ -196,8 +196,8 @@
   --mr-flat: #6a717b;
   --mr-flat-soft: rgba(106, 113, 123, 0.1);
 
-  --mr-warn: #836810;
-  --mr-warn-soft: rgba(131, 104, 16, 0.11);
+  --mr-warn: #735b0f;
+  --mr-warn-soft: rgba(115, 91, 15, 0.11);
   --mr-danger: #a84f4a;
   --mr-ok: #2d7857;
 

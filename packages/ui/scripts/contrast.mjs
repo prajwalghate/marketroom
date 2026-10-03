@@ -112,9 +112,16 @@ const contrast = (a, b) => {
 };
 
 /** Measure `fg` against `bg`, optionally with a translucent `fill` layered in between. */
-function measure(theme, { fg, bg, fill }) {
+function measure(theme, { fg, bg, fill, fillTimes }) {
   let backdrop = parse(theme[bg], theme).rgb;
-  if (fill) backdrop = composite(parse(theme[fill], theme), backdrop);
+  // A tint can be applied more than once — a warn badge sitting inside the
+  // warn callout stacks two translucent fills, and the second one darkens the
+  // backdrop enough to fail a pair that passes on its own. Measuring only the
+  // single application is how `--mr-warn` shipped at 3.92:1 while this gate
+  // reported 4.58.
+  for (let i = 0; i < (fillTimes ?? (fill ? 1 : 0)); i += 1) {
+    backdrop = composite(parse(theme[fill], theme), backdrop);
+  }
   return contrast(composite(parse(theme[fg], theme), backdrop), backdrop);
 }
 
@@ -158,6 +165,23 @@ CASES.push(
     fill: '--mr-warn-soft',
     kind: 'body',
     where: 'Badge tone=warn',
+  },
+  {
+    fg: '--mr-warn',
+    bg: '--mr-bg',
+    fill: '--mr-warn-soft',
+    kind: 'body',
+    where: 'warn badge on the page background',
+  },
+  {
+    // Risk callout tints its own background, and the badges inside it tint
+    // again. Two stacked fills, which is strictly darker than either alone.
+    fg: '--mr-warn',
+    bg: '--mr-bg',
+    fill: '--mr-warn-soft',
+    fillTimes: 2,
+    kind: 'body',
+    where: 'warn badge inside the risk callout',
   },
   {
     fg: '--mr-accent',

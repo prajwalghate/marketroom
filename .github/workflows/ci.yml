@@ -80,3 +80,13 @@ jobs:
       # including the Trade button on every market.
       - name: Check outbound links
         run: pnpm links:check
+
+      # axe-core over every page in both themes, plus keyboard and focus
+      # checks axe does not perform. Needs the app running, so it builds and
+      # starts it first.
+      - name: Accessibility audit
+        run: |
+          pnpm --filter @marketroom/web exec next build
+          pnpm --filter @marketroom/web exec next start -p 3000 &
+          npx wait-on http://localhost:3000 --timeout 120000
+          BASE_URL=http://localhost:3000 pnpm a11y

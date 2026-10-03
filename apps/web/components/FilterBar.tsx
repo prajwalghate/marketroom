@@ -2,7 +2,8 @@
 
 import type { AssetClass, Facet, MarketFilters, SortKey, VenueId } from '@marketroom/core';
 import { SORT_KEYS, SORT_LABELS, countryFlag } from '@marketroom/core';
-import type { ReactNode } from 'react';
+import type { KeyboardEvent as ReactKeyboardEvent, ReactNode } from 'react';
+import { useRef } from 'react';
 
 /**
  * Market filters.
@@ -200,9 +201,21 @@ interface SegmentOption {
 /**
  * A segmented control.
  *
- * `radiogroup` rather than a row of buttons: the options are mutually
- * exclusive, and that is what tells a screen reader so — and what gives
- * arrow-key navigation for free in most readers.
+ * `radiogroup` rather than a row of buttons, because the options are mutually
+ * exclusive and that is what tells assistive tech so. Claiming the role means
+ * owing its keyboard contract, which a row of plain buttons does not provide
+ * for free:
+ *
+ *  - **Roving tabindex.** The group is one tab stop, not one per option.
+ *    Without it, Class and Venue cost twelve stops between the search box and
+ *    the table.
+ *  - **Arrow keys move and select.** Native radios behave this way, so a
+ *    screen-reader user following the pattern presses an arrow and expects
+ *    something to happen.
+ *
+ * Both were missing when this shipped: arrows did nothing and every option was
+ * tabbable. axe reports no violation for either — it checks that roles are
+ * used validly, not that their behaviour exists.
  */
 function Segmented({
   label,
@@ -215,18 +228,82 @@ function Segmented({
   options: readonly SegmentOption[];
   onChange: (id: string) => void;
 }): ReactNode {
+  const groupRef = useRef<HTMLDivElement>(null);
+  const activeIndex = Math.max(
+    0,
+    options.findIndex((option) => option.id === value),
+  );
+
+  const move = (delta: number) => {
+    const buttons = [
+      ...(groupRef.current?.querySelectorAll<HTMLButtonElement>('.mr-segment') ?? []),
+    ];
+    // Derived from what is focused *now*, not from the `value` prop. Holding an
+    // arrow key outruns the re-render, and reading a stale prop made every
+    // second press move focus without selecting.
+    const from = buttons.indexOf(document.activeElement as HTMLButtonElement);
+    const current = from === -1 ? activeIndex : from;
+
+    const next = (current + delta + options.length) % options.length;
+    const option = options[next];
+    if (!option) return;
+
+    onChange(option.id);
+    // Focus follows selection, as it does for native radios.
+    buttons[next]?.focus();
+  };
+
+  const moveTo = (index: number) => {
+    const option = options[index];
+    if (!option) return;
+    onChange(option.id);
+    groupRef.current?.querySelectorAll<HTMLButtonElement>('.mr-segment')[index]?.focus();
+  };
+
+  const onKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>) => {
+    switch (event.key) {
+      case 'ArrowRight':
+      case 'ArrowDown':
+        event.preventDefault();
+        move(1);
+        break;
+      case 'ArrowLeft':
+      case 'ArrowUp':
+        event.preventDefault();
+        move(-1);
+        break;
+      case 'Home':
+        event.preventDefault();
+        moveTo(0);
+        break;
+      case 'End':
+        event.preventDefault();
+        moveTo(options.length - 1);
+        break;
+      default:
+    }
+  };
+
   return (
     <div className="mr-field">
       <span className="mr-field-label" id={`seg-${label}`}>
         {label}
       </span>
-      <div className="mr-segmented" role="radiogroup" aria-labelledby={`seg-${label}`}>
-        {options.map((option) => (
+      <div
+        ref={groupRef}
+        className="mr-segmented"
+        role="radiogroup"
+        aria-labelledby={`seg-${label}`}
+        onKeyDown={onKeyDown}
+      >
+        {options.map((option, index) => (
           <button
             key={option.id}
             type="button"
             role="radio"
             aria-checked={value === option.id}
+            // Roving tabindex: only the selected option is a tab stop.
+            tabIndex={index === activeIndex ? 0 : -1}
             className="mr-segment"
             onClick={() => onChange(option.id)}
           >
