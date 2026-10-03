@@ -5,6 +5,7 @@ import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
 import Link from 'next/link';
 import { PrimaryNav } from '@/components/PrimaryNav';
+import { Logo } from '@marketroom/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
 
 const inter = Inter({
@@ -72,9 +73,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="mr-header">
           <div className="mr-header-inner">
             <Link href="/" className="mr-brand" aria-label="Marketroom home">
-              <span className="mr-brand-mark" aria-hidden="true">
-                M
-              </span>
+              <Logo className="mr-brand-mark" />
               <span className="mr-brand-text">
                 Marketroom
                 <span className="mr-brand-sub">Tokenized equities</span>

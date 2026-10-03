@@ -10,7 +10,6 @@ import {
   EMPTY,
   formatPercentAbs,
   formatCompactUsd,
-  formatPrice,
   primaryListing,
   priceChange24h,
   venueSpread,
@@ -22,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import type { MouseEvent as ReactMouseEvent } from 'react';
 import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useLivePrices } from '@/lib/useLivePrices';
+import { TickingPrice } from './TickingPrice';
 
 /**
  * The market table.
@@ -430,7 +430,9 @@ const MarketRow = memo(function MarketRow({
       </td>
 
       <td data-col="price" className="is-numeric mr-num" style={{ fontWeight: 500 }}>
-        {formatPrice(price)}
+        {/* Tints briefly when the websocket moves it, so a live table is
+            distinguishable from a frozen one. */}
+        <TickingPrice value={price} />
       </td>
 
       <td data-col="change" className="is-numeric">

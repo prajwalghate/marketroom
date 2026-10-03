@@ -62,16 +62,11 @@
 }
 
 .mr-brand-mark {
-  display: grid;
-  place-items: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid var(--mr-border-strong);
-  border-radius: var(--mr-radius);
-  font-family: var(--mr-font-mono);
-  font-size: var(--mr-text-sm);
-  font-weight: 600;
-  color: var(--mr-text-muted);
+  /* The mark is a drawn shape now, not a letter in a box: no border, no fixed
+     grid, and it takes its colour from the brand link so hover carries it. */
+  display: block;
+  flex-shrink: 0;
+  color: var(--mr-text);
 }
 
 .mr-brand-text {
