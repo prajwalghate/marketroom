@@ -104,3 +104,21 @@ describe('isDefaultViewState', () => {
     expect(isDefaultViewState(parseViewState('q=%20%20'))).toBe(true);
   });
 });
+
+describe('country filter', () => {
+  it('round-trips a country code', () => {
+    const state = parseViewState('country=US');
+    expect(state.filters.countries).toEqual(['US']);
+    expect(serializeViewState(state)).toBe('country=US');
+  });
+
+  it('round-trips a dual-listed country code containing a slash', () => {
+    const state = parseViewState('country=US%2FAU');
+    expect(state.filters.countries).toEqual(['US/AU']);
+    expect(parseViewState(serializeViewState(state))).toEqual(state);
+  });
+
+  it('counts as a non-default view', () => {
+    expect(isDefaultViewState(parseViewState('country=JP'))).toBe(false);
+  });
+});

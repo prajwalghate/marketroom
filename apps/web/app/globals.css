@@ -1147,3 +1147,160 @@
     border-top: 1px solid var(--mr-border);
   }
 }
+
+/* ── Filter bar ──────────────────────────────────────────────────────────── */
+
+.mr-filters {
+  margin-bottom: 18px;
+}
+
+.mr-filter-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.mr-search {
+  position: relative;
+  flex: 1 1 280px;
+  min-width: 220px;
+}
+
+.mr-search-icon {
+  position: absolute;
+  left: 11px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--mr-text-subtle);
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.mr-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+}
+
+.mr-field-label {
+  font-size: var(--mr-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--mr-text-subtle);
+}
+
+.mr-filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.mr-filter-clear {
+  margin-left: auto;
+}
+
+/* Segmented control.
+   One bordered container with hairline dividers, so it reads as a single
+   control with a chosen option — not as a row of unrelated buttons. */
+.mr-segmented {
+  display: inline-flex;
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius);
+  overflow: hidden;
+}
+
+.mr-segment {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 32px;
+  padding: 5px 11px;
+  font-family: inherit;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-muted);
+  background: transparent;
+  border: none;
+  border-left: 1px solid var(--mr-border);
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color var(--mr-duration-fast) var(--mr-ease),
+    background var(--mr-duration-fast) var(--mr-ease);
+}
+
+.mr-segment:first-child {
+  border-left: none;
+}
+
+.mr-segment:hover {
+  color: var(--mr-text);
+  background: var(--mr-surface-2);
+}
+
+.mr-segment[aria-checked='true'] {
+  color: var(--mr-text);
+  background: var(--mr-surface-3);
+  font-weight: 500;
+}
+
+/* The selected segment carries a top rule in the accent, which marks it
+   without tinting the whole control. */
+.mr-segment[aria-checked='true']::before {
+  content: '';
+  position: absolute;
+  margin-top: -32px;
+  width: 100%;
+  height: 2px;
+  background: var(--mr-accent);
+}
+
+.mr-segment {
+  position: relative;
+}
+
+.mr-segment-count {
+  font-family: var(--mr-font-mono);
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+
+.mr-sector-label {
+  padding-bottom: 7px;
+}
+
+.mr-sector-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.mr-result-count {
+  margin: 0;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-subtle);
+}
+
+@media (max-width: 720px) {
+  .mr-filter-row {
+    gap: 10px;
+  }
+
+  /* Segmented controls scroll rather than wrap: a wrapped segmented control
+     reads as two separate controls. */
+  .mr-segmented {
+    max-width: 100%;
+    overflow-x: auto;
+  }
+
+  .mr-filter-clear {
+    margin-left: 0;
+  }
+}

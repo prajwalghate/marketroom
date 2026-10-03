@@ -32,6 +32,7 @@ const PARAM = {
   sectors: 'sector',
   assetClasses: 'class',
   venues: 'venue',
+  countries: 'country',
   multiVenue: 'multi',
   sort: 'sort',
 } as const;
@@ -100,7 +101,9 @@ export function parseViewState(source: QuerySource): MarketViewState {
       sectors: readList(params, PARAM.sectors),
       assetClasses: readList<AssetClass>(params, PARAM.assetClasses, ASSET_CLASSES),
       venues: readList<VenueId>(params, PARAM.venues, VENUES),
-      countries: [],
+      // ISO-3166 codes are curated strings like `US` or `US/AU`, so there is no
+      // allow-list to validate against — an unknown code simply matches nothing.
+      countries: readList(params, PARAM.countries),
       multiVenueOnly: params.get(PARAM.multiVenue) === '1',
     },
     sort,
@@ -122,6 +125,7 @@ export function serializeViewState({ filters, sort }: MarketViewState): string {
   if (filters.assetClasses.length > 0)
     params.set(PARAM.assetClasses, filters.assetClasses.join(','));
   if (filters.venues.length > 0) params.set(PARAM.venues, filters.venues.join(','));
+  if (filters.countries.length > 0) params.set(PARAM.countries, filters.countries.join(','));
   if (filters.multiVenueOnly) params.set(PARAM.multiVenue, '1');
   if (sort !== DEFAULT_SORT) params.set(PARAM.sort, sort);
 
@@ -135,6 +139,7 @@ export function isDefaultViewState({ filters, sort }: MarketViewState): boolean 
     filters.sectors.length === 0 &&
     filters.assetClasses.length === 0 &&
     filters.venues.length === 0 &&
+    filters.countries.length === 0 &&
     !filters.multiVenueOnly &&
     sort === DEFAULT_SORT
   );

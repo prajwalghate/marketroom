@@ -1,7 +1,7 @@
 'use client';
 
 import type { MarketFilters, MarketViewState, SortKey } from '@marketroom/core';
-import { parseViewState, serializeViewState } from '@marketroom/core';
+import { isDefaultViewState, parseViewState, serializeViewState } from '@marketroom/core';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -122,12 +122,13 @@ export function useMarketViewState(): MarketViewController {
     setFilters,
     setSort,
     reset,
-    isDefault:
-      queryInput.trim() === '' &&
-      state.filters.sectors.length === 0 &&
-      state.filters.assetClasses.length === 0 &&
-      state.filters.venues.length === 0 &&
-      !state.filters.multiVenueOnly &&
-      state.sort === 'volume',
+    // Delegated to core rather than re-implemented here. The inline copy this
+    // replaces had silently fallen behind: it never learned about the country
+    // filter, so a country-only view counted as "default" and the Clear control
+    // never rendered — leaving no way out of the filter.
+    isDefault: isDefaultViewState({
+      filters: { ...state.filters, query: queryInput },
+      sort: state.sort,
+    }),
   };
 }
