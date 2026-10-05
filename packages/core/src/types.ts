@@ -205,8 +205,54 @@ export interface Quote {
   readonly fdv: number | null;
   /** Distinct on-chain holders. Token listings only. */
   readonly holders: number | null;
-  /** Epoch ms when this quote was observed. */
+
+  /**
+   * Venue-published divergence of mark from oracle, as a fraction. Perps only.
+   *
+   * This is the venue's own number, not ours. Hyperliquid computes it as part
+   * of funding and publishes it in the same payload as the price — we were
+   * already fetching it and throwing it away.
+   */
+  readonly premium: number | null;
+
+  /**
+   * Venue-published `[bid, ask]` impact prices — what a notional-sized order
+   * would actually fill at, as opposed to the mid. Perps only.
+   *
+   * The gap between these and `price` is the honest cost of the first real
+   * trade, and it is the cheapest depth signal available: it arrives free in
+   * the quote payload, where a book snapshot would be a request per market.
+   */
+  readonly impactPrices: readonly [number, number] | null;
+
+  /**
+   * 24h volume the venue classifies as organic, in USD. Token listings only.
+   *
+   * Kept separate from `volume24h` rather than replacing it, because the two
+   * routinely differ by more than an order of magnitude and which one you are
+   * looking at matters. This is the venue's classification, not ours — label
+   * it as theirs wherever it is shown.
+   */
+  readonly organicVolume24h: number | null;
+
+  /** Trades in the last 24h / 1h. Token listings only. Recency, not size. */
+  readonly tradeCount24h: number | null;
+  readonly tradeCount1h: number | null;
+
+  /** Epoch ms when *we* observed this quote. Always our own clock. */
   readonly observedAt: number;
+
+  /**
+   * Epoch ms the *venue* says the price is from, where it says so at all.
+   *
+   * Deliberately separate from `observedAt`, and deliberately nullable.
+   * Hyperliquid's `allMids` and `metaAndAssetCtxs` carry no timestamp of any
+   * kind, so for perps this is `null` and the UI must say it does not know.
+   * Defaulting it to our poll time would render "updated 3s ago" over a price
+   * that last moved hours ago — reassurance exactly where the product cannot
+   * afford to be wrong.
+   */
+  readonly venueObservedAt: number | null;
 }
 
 // ---------------------------------------------------------------------------

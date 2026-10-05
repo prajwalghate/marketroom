@@ -48,10 +48,23 @@ export function VenueComparison({ view }: { view: AssetView }) {
             lineHeight: 1.6,
           }}
         >
-          {view.asset.symbol} trades {formatPercentAbs(spread.fraction)} apart across venues —{' '}
+          {view.asset.symbol} is quoted {formatPercentAbs(spread.fraction)} apart across venues —{' '}
           {formatPrice(spread.low.quote?.price ?? null)} on {spread.low.listing.venue} versus{' '}
-          {formatPrice(spread.high.quote?.price ?? null)} on {spread.high.listing.venue}. These are
-          different instruments, so a gap is normal; a persistent one is worth understanding.
+          {formatPrice(spread.high.quote?.price ?? null)} on {spread.high.listing.venue}.{' '}
+          {spread.comparable ? (
+            <>
+              These are different instruments, so a gap is normal; a persistent one is worth
+              understanding.
+            </>
+          ) : (
+            // The gap is still stated above — hiding it would be its own
+            // dishonesty — but it is not a dislocation, and the difference is
+            // the whole point of the page.
+            <>
+              <strong>This is not a tradable gap.</strong> {spread.reasons.join(' ')} The wider
+              quote is a stale print from a market you could not transact in, not a premium.
+            </>
+          )}
         </p>
       )}
 

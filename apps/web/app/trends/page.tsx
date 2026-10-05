@@ -65,7 +65,11 @@ export default async function TrendsPage() {
   const dislocations = snapshot.assets
     .flatMap((view) => {
       const spread = venueSpread(view);
-      return spread ? [{ view, spread }] : [];
+      // Comparable only. Sorting on raw gap size ranks the listings least able
+      // to support a trade, because the widest gaps come from the emptiest
+      // pools — the leaderboard was selecting for exactly what it should warn
+      // about.
+      return spread?.comparable ? [{ view, spread }] : [];
     })
     .sort((a, b) => b.spread.fraction - a.spread.fraction)
     .slice(0, 8);

@@ -225,8 +225,17 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
             <SectionTitle
               action={
                 spread && (
-                  <Badge tone="warn" mono>
-                    {(spread.fraction * 100).toFixed(2)}% spread
+                  // "spread" is a claim that these are two prices you could
+                  // trade between. When one leg cannot absorb an order it is a
+                  // quote gap and nothing more, so the label and the tone both
+                  // change — VenueComparison below gives the full reason.
+                  <Badge
+                    tone={spread.comparable ? 'warn' : 'neutral'}
+                    mono
+                    title={spread.comparable ? undefined : spread.reasons.join(' ')}
+                  >
+                    {(spread.fraction * 100).toFixed(2)}%{' '}
+                    {spread.comparable ? 'spread' : 'quote gap'}
                   </Badge>
                 )
               }

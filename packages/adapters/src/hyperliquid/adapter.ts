@@ -79,6 +79,25 @@ interface WireAssetCtx {
   openInterest?: string;
   dayNtlVlm?: string;
   funding?: string;
+  /** Mark-vs-oracle divergence, as a fraction. Published, not derived by us. */
+  premium?: string;
+  /** `[bid, ask]` impact prices — the fill for a notional-sized order. */
+  impactPxs?: [string, string] | string[];
+}
+
+/**
+ * Normalises the venue's impact prices to a `[bid, ask]` pair of numbers.
+ *
+ * Returns `null` on anything unexpected rather than a partial pair: a depth
+ * signal that is half-parsed is worse than one that is absent, because the UI
+ * would render it as though it were whole.
+ */
+function impactPair(raw: readonly string[] | undefined): readonly [number, number] | null {
+  if (!Array.isArray(raw) || raw.length !== 2) return null;
+  const bid = num(raw[0]);
+  const ask = num(raw[1]);
+  if (bid === null || ask === null) return null;
+  return [bid, ask];
 }
 
 interface WireCandle {
@@ -245,7 +264,17 @@ export class HyperliquidAdapter implements VenueAdapter {
         oraclePrice: num(context.oraclePx),
         fdv: null,
         holders: null,
+        premium: num(context.premium),
+        impactPrices: impactPair(context.impactPxs),
+        organicVolume24h: null,
+        tradeCount24h: null,
+        tradeCount1h: null,
         observedAt,
+        // Neither `allMids` nor `metaAndAssetCtxs` carries a timestamp of any
+        // kind. Substituting `observedAt` here would turn our poll clock into
+        // a claim about the venue's price age, which is the one thing a
+        // freshness indicator must never do.
+        venueObservedAt: null,
       });
     });
 

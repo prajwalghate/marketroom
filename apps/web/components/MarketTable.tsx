@@ -478,7 +478,17 @@ const MarketRow = memo(function MarketRow({
           The column header names the metric; the cell is just the figure. */}
       <td data-col="spread" className="is-numeric mr-hide-sm">
         {spread ? (
-          <Badge tone={spread.fraction > 0.01 ? 'warn' : 'neutral'} mono>
+          // A non-comparable gap keeps its number but loses the warn tone: the
+          // colour means "worth your attention as a dislocation", and this is
+          // not one. The title says why, since the cell has no room to.
+          <Badge
+            tone={!spread.comparable ? 'neutral' : spread.fraction > 0.01 ? 'warn' : 'neutral'}
+            mono
+            title={
+              spread.comparable ? undefined : `Not a tradable gap. ${spread.reasons.join(' ')}`
+            }
+          >
+            {spread.comparable ? '' : '~'}
             {formatPercentAbs(spread.fraction)}
           </Badge>
         ) : (

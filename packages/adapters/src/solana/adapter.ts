@@ -90,11 +90,51 @@ interface WireToken {
   mcap?: number | string;
   fdv?: number | string;
   holderCount?: number | string;
-  stats24h?: {
-    priceChange?: number | string;
-    buyVolume?: number | string;
-    sellVolume?: number | string;
-  };
+  stats24h?: WireStats;
+  stats1h?: WireStats;
+  /** ISO 8601. The venue's own view of when this price is from. */
+  updatedAt?: string;
+}
+
+interface WireStats {
+  priceChange?: number | string;
+  buyVolume?: number | string;
+  sellVolume?: number | string;
+  /** Volume the venue classifies as organic. Their judgement, not ours. */
+  buyOrganicVolume?: number | string;
+  sellOrganicVolume?: number | string;
+  numBuys?: number | string;
+  numSells?: number | string;
+}
+
+/**
+ * Organic volume for a window, or `null` when the venue did not classify it.
+ *
+ * `null` rather than `0`: an unclassified window is not a window with no
+ * organic trading, and the difference decides whether the UI says "3% organic"
+ * or says nothing. Zero is only returned when the venue actually reported it.
+ */
+function organicVolume(stats: WireStats | undefined): number | null {
+  if (!stats) return null;
+  const buy = num(stats.buyOrganicVolume);
+  const sell = num(stats.sellOrganicVolume);
+  if (buy === null && sell === null) return null;
+  return (buy ?? 0) + (sell ?? 0);
+}
+
+function tradeCount(stats: WireStats | undefined): number | null {
+  if (!stats) return null;
+  const buys = num(stats.numBuys);
+  const sells = num(stats.numSells);
+  if (buys === null && sells === null) return null;
+  return (buys ?? 0) + (sells ?? 0);
+}
+
+/** ISO 8601 to epoch ms, or `null` — never a silent fallback to our clock. */
+function parseIsoMs(value: string | undefined): number | null {
+  if (!value) return null;
+  const ms = Date.parse(value);
+  return Number.isFinite(ms) ? ms : null;
 }
 
 /**
@@ -290,7 +330,13 @@ export class SolanaAdapter implements VenueAdapter {
         oraclePrice: null,
         fdv: num(token.fdv) ?? num(token.mcap),
         holders: num(token.holderCount),
+        premium: null,
+        impactPrices: null,
+        organicVolume24h: organicVolume(token.stats24h),
+        tradeCount24h: tradeCount(token.stats24h),
+        tradeCount1h: tradeCount(token.stats1h),
         observedAt,
+        venueObservedAt: parseIsoMs(token.updatedAt),
       });
     }
 

@@ -50,6 +50,12 @@ const quote = (over: Partial<Quote> = {}): Quote => ({
   oraclePrice: null,
   fdv: null,
   holders: null,
+  premium: null,
+  impactPrices: null,
+  organicVolume24h: null,
+  tradeCount24h: null,
+  tradeCount1h: null,
+  venueObservedAt: null,
   observedAt: 0,
   ...over,
 });
@@ -90,19 +96,44 @@ describe('movers', () => {
 });
 
 describe('topDislocations', () => {
+  // Token legs carry a real pool: a `tokenized-equity` with no liquidity is a
+  // dead listing, and is excluded on purpose — see the case below.
+  const POOL = { liquidity: 2_000_000 };
+
   it('ranks by spread and ignores single-venue assets', () => {
     const universe = [
       view('wide', [
         { listing: listing('a'), quote: quote({ price: 100 }) },
-        { listing: listing('b', 'tokenized-equity'), quote: quote({ price: 103 }) },
+        { listing: listing('b', 'tokenized-equity'), quote: quote({ price: 103, ...POOL }) },
       ]),
       view('narrow', [
         { listing: listing('c'), quote: quote({ price: 100 }) },
-        { listing: listing('d', 'tokenized-equity'), quote: quote({ price: 100.5 }) },
+        { listing: listing('d', 'tokenized-equity'), quote: quote({ price: 100.5, ...POOL }) },
       ]),
       single('solo', { price: 100 }),
     ];
     expect(topDislocations(universe).map((d) => d.view.asset.id)).toEqual(['wide', 'narrow']);
+  });
+
+  it('does not rank a gap whose wide leg has no liquidity behind it', () => {
+    // The ranking is sorted on gap size, which selects for exactly this: the
+    // emptier the pool, the staler the print and the wider the apparent gap.
+    // Measured live before this filter existed, the top of the panel was a
+    // token with no pool at all quoting 4.6% away from its perp.
+    const universe = [
+      view('real', [
+        { listing: listing('a'), quote: quote({ price: 100 }) },
+        { listing: listing('b', 'tokenized-equity'), quote: quote({ price: 101, ...POOL }) },
+      ]),
+      view('hollow', [
+        { listing: listing('c'), quote: quote({ price: 100 }) },
+        {
+          listing: listing('d', 'tokenized-equity'),
+          quote: quote({ price: 110, liquidity: null }),
+        },
+      ]),
+    ];
+    expect(topDislocations(universe).map((d) => d.view.asset.id)).toEqual(['real']);
   });
 });
 

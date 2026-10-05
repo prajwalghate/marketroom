@@ -6,6 +6,7 @@
  * one place rather than being scattered through components.
  */
 
+import { isQuotable, tradabilityOf } from './tradability';
 import type { AssetView, Candle, ListingQuote, OrderBook, Quote } from './types';
 
 // ---------------------------------------------------------------------------
@@ -126,6 +127,24 @@ export interface VenueSpread {
   readonly absolute: number;
   /** Fraction of the lower price. */
   readonly fraction: number;
+
+  /**
+   * Whether this gap can honestly be called a spread.
+   *
+   * A spread implies two prices you could trade between. When one leg cannot
+   * absorb a meaningful order, the difference is a stale print sitting next to
+   * a live market, and presenting it as a dislocation invites a trade that
+   * does not exist. ASML was the case that forced this: a 5.74% gap, published
+   * as a headline, with $107 of liquidity behind the expensive side.
+   *
+   * The gap is still returned when this is `false` — suppressing it outright
+   * would hide a real fact about the listing. It is the *framing* that has to
+   * change, so callers must branch on this rather than on the number.
+   */
+  readonly comparable: boolean;
+
+  /** Why it is not comparable. Empty when it is. */
+  readonly reasons: readonly string[];
 }
 
 /**
@@ -169,7 +188,25 @@ export function venueSpread(view: AssetView): VenueSpread | null {
   // A gap this wide is a data-mapping error, not a tradable dislocation.
   if (fraction > IMPLAUSIBLE_SPREAD) return null;
 
-  return { low, high, absolute, fraction };
+  // The blunt cutoff above catches garbage. It does not catch the subtler and
+  // more common case: a perfectly plausible-looking gap where one side has no
+  // liquidity behind it. That needs the per-leg assessment.
+  const reasons: string[] = [];
+  for (const leg of [low, high]) {
+    const assessment = tradabilityOf(leg);
+    if (isQuotable(assessment)) continue;
+    const venue = leg.listing.venue;
+    for (const reason of assessment.reasons) {
+      reasons.push(`${venue}: ${reason}`);
+    }
+    // A leg with no stated reason still fails the gate; say something rather
+    // than silently marking it incomparable with an empty explanation.
+    if (assessment.reasons.length === 0) {
+      reasons.push(`${venue}: not enough liquidity to support a trade at this price.`);
+    }
+  }
+
+  return { low, high, absolute, fraction, comparable: reasons.length === 0, reasons };
 }
 
 // ---------------------------------------------------------------------------

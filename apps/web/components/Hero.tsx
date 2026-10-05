@@ -81,7 +81,11 @@ function ContrastPanel({ view }: { view: AssetView }) {
           <span className="mr-num mr-contrast-ticker">{view.asset.symbol}</span>
           <span className="mr-contrast-name">{view.asset.name}</span>
         </span>
-        {spread && (
+        {/* Only a comparable gap earns the badge. An incomparable one is not a
+            headline fact about the asset — it is a fact about one broken
+            listing, and it belongs on the market page where there is room to
+            explain it. */}
+        {spread?.comparable && (
           <Badge tone="warn" mono>
             {formatPercentAbs(spread.fraction)} apart
           </Badge>

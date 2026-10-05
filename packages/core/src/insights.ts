@@ -84,12 +84,19 @@ export function topLosers(universe: readonly AssetView[], limit = 5): MoverInsig
  * Marketroom's signature metric — it is only computable because one asset
  * holds many listings, and `venueSpread` already discards implausible gaps
  * that indicate a bad catalog mapping rather than a real dislocation.
+ *
+ * **Only comparable spreads are ranked.** A leaderboard sorted on raw gap size
+ * selects precisely for the listings least able to support a trade: the wider
+ * the gap, the likelier one side is a stale print from an empty pool. Before
+ * this filter the top of the list was ASML at 5.7%, with $107 of liquidity
+ * behind the expensive leg — the panel was, in effect, ranking broken markets
+ * and presenting them as opportunities.
  */
 export function topDislocations(universe: readonly AssetView[], limit = 5): SpreadInsight[] {
   return universe
     .flatMap((view) => {
       const spread = venueSpread(view);
-      return spread ? [{ view, spread }] : [];
+      return spread?.comparable ? [{ view, spread }] : [];
     })
     .sort((a, b) => b.spread.fraction - a.spread.fraction)
     .slice(0, limit);

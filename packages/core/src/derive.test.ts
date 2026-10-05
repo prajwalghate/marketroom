@@ -58,6 +58,12 @@ const quote = (listingId: string, over: Partial<Quote> = {}): Quote => ({
   oraclePrice: null,
   fdv: null,
   holders: null,
+  premium: null,
+  impactPrices: null,
+  organicVolume24h: null,
+  tradeCount24h: null,
+  tradeCount1h: null,
+  venueObservedAt: null,
   observedAt: 0,
   ...over,
 });
