@@ -200,3 +200,25 @@ filtered links serve in tens of milliseconds rather than hitting an upstream API
 - [Data sources](docs/research/01-data-sources.md) — every endpoint, verified live
 - [Architecture](docs/research/02-architecture.md) — stack, structure, decisions
 - [ADR 0001](docs/adr/0001-asset-listing-split.md) — why Asset and Listing are separate
+
+---
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for the branching model, commit convention and the
+CI gates a change has to clear. Three of those gates exist because the normal pipeline
+cannot catch what they catch: `pnpm contrast` (token contrast ratios, measured over
+composited surfaces), `pnpm links:check` (every outbound issuer and venue link) and
+`pnpm a11y` (axe plus keyboard and focus checks).
+
+## Disclaimer
+
+Marketroom aggregates public market data and is not affiliated with Hyperliquid,
+trade[XYZ], Backed Finance or any issuer. Nothing here is investment advice. Perpetual
+futures confer leveraged price exposure, not ownership; tokenized equities carry issuer,
+custody and redemption risk. Figures come from third-party venue APIs and may be stale,
+thin or wrong — verify every number at the source before acting on it.
+
+## License
+
+[MIT](LICENSE) © 2026 Prajwal Ghate
