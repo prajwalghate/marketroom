@@ -51,7 +51,7 @@ Scoping by package means `git log --oneline` reads as a map of the repo, and
 
 - One concern per PR. If the title needs an "and", split it.
 - Self-review the diff first — it catches most of what review would.
-- CI must be green: typecheck → lint → test → build → catalog coverage.
+- CI must be green: typecheck → lint → format → test → contrast → build, then catalog coverage, outbound links and the accessibility audit.
 - Vercel posts a preview URL on every PR.
 - With two people, review is a ~5-minute sanity pass, not a gate. Don't let a PR sit.
 

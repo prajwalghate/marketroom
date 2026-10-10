@@ -19,9 +19,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The pnpm version comes from `packageManager` in package.json; naming it
+      # here as well makes the action refuse to run.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -60,9 +60,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # The pnpm version comes from `packageManager` in package.json; naming it
+      # here as well makes the action refuse to run.
       - uses: pnpm/action-setup@v4
-        with:
-          version: 9
 
       - uses: actions/setup-node@v4
         with:
@@ -81,9 +81,33 @@ jobs:
       - name: Check outbound links
         run: pnpm links:check
 
+  accessibility:
+    name: Accessibility audit
+    runs-on: ubuntu-latest
+    # Every page in both themes, plus the mobile set: about half an hour.
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      # The pnpm version comes from `packageManager` in package.json; naming it
+      # here as well makes the action refuse to run.
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Install
+        run: pnpm install --frozen-lockfile
+
+      # Playwright does not download browsers on install.
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
       # axe-core over every page in both themes, plus keyboard and focus
       # checks axe does not perform. Needs the app running, so it builds and
-      # starts it first.
+      # starts it first; the research database fills itself as pages are read.
       - name: Accessibility audit
         run: |
           pnpm --filter @marketroom/web exec next build
