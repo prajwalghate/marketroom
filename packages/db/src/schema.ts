@@ -681,7 +681,15 @@ export const importRuns = pgTable(
     stats: jsonb('stats').$type<Record<string, number>>(),
     error: text('error'),
   },
-  (t) => [index('import_runs_job_idx').on(t.job, t.startedAt)],
+  (t) => [
+    index('import_runs_job_idx').on(t.job, t.startedAt),
+    // At most one running row per job. Claiming a run is an insert a second
+    // server cannot also make — a check-then-insert alone races when several
+    // instances wake at once on a shared database.
+    uniqueIndex('import_runs_one_running')
+      .on(t.job)
+      .where(sql`${t.status} = 'running'`),
+  ],
 );
 
 /** When a job last processed a given record — so batch jobs work through the stalest first. */

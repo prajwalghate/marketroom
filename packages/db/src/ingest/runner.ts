@@ -14,6 +14,7 @@ import { importRuns } from '../schema';
 import type { JobContext, JobEnv, JobResult } from './context';
 import { syncEvents } from './events';
 import { syncFunding } from './funding';
+import { runMaintenance } from './maintenance';
 import { syncMarkets } from './markets';
 import { syncNews } from './news';
 import { syncOnchain } from './onchain';
@@ -96,6 +97,14 @@ const registry = {
     after: ['projects'],
     run: syncEvents,
   },
+  maintenance: {
+    label: 'Maintenance',
+    description:
+      'Thins token prices older than a week and program activity older than two weeks to one reading a day, and drops import logs older than 30 days, so the database stays small.',
+    everyMs: 24 * HOUR,
+    after: ['markets'],
+    run: runMaintenance,
+  },
 } satisfies Record<string, JobDefinition>;
 
 export type JobName = keyof typeof registry | (string & {});
@@ -112,6 +121,15 @@ export function jobDefinitions(): [string, JobDefinition][] {
 }
 
 export type ImportRun = typeof importRuns.$inferSelect;
+
+/** Postgres's unique_violation, from either driver, through Drizzle's wrapper. */
+function isUniqueViolation(error: unknown): boolean {
+  for (let e: unknown = error, depth = 0; e && depth < 4; depth += 1) {
+    if ((e as { code?: unknown }).code === '23505') return true;
+    e = (e as { cause?: unknown }).cause;
+  }
+  return false;
+}
 
 /** A run still marked running after this long died with its process. */
 const STALE_RUN_MS = 30 * MINUTE;
@@ -155,10 +173,17 @@ export async function runJob(db: Db, name: string, options: RunOptions): Promise
     .where(and(eq(importRuns.job, name), inArray(importRuns.status, ['ok', 'partial'])))
     .limit(1);
 
-  const [run] = await db
-    .insert(importRuns)
-    .values({ job: name, status: 'running', startedAt: now })
-    .returning();
+  let run: ImportRun;
+  try {
+    [run] = (await db
+      .insert(importRuns)
+      .values({ job: name, status: 'running', startedAt: now })
+      .returning()) as [ImportRun];
+  } catch (error) {
+    // Another server claimed this job between the check above and the insert.
+    if (isUniqueViolation(error)) return null;
+    throw error;
+  }
   const log = options.log ?? (() => {});
   try {
     const result = await job.run({

@@ -16,21 +16,27 @@ import { migrate, openDb, rows, type Db, type DbHandle } from '../client';
 import {
   eventLinks,
   fundingRounds,
+  importRuns,
+  marketSnapshots,
   organizations,
   people,
+  programActivity,
   programs,
   projectPeople,
   projectPrograms,
   projects,
   roundInvestors,
+  tokens,
 } from '../schema';
 import { addAliases } from '../write';
 import type { JobContext } from './context';
 import { syncEvents } from './events';
 import { reclassifyGuessedPeople } from './funding';
+import { runMaintenance } from './maintenance';
 import { syncNews } from './news';
 import { syncPeople } from './people';
 import { syncPrograms } from './programs';
+import { registerJob, runJob } from './runner';
 
 // Each block opens its own Postgres (PGlite) in memory; on a busy machine that
 // alone can outlast the default ten-second hook timeout.
@@ -791,5 +797,117 @@ describe('reclassifying guessed people', () => {
 
     // Nothing left to do on a second pass.
     expect(await reclassifyGuessedPeople(ctxFor(db, 'funding', false))).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// runner: one run per job, across servers
+// ---------------------------------------------------------------------------
+
+describe('claiming a run', () => {
+  let handle: DbHandle;
+  let db: Db;
+
+  beforeAll(async () => {
+    handle = await openDb();
+    await migrate(handle.db);
+    db = handle.db;
+  });
+  afterAll(async () => handle.close());
+
+  it('lets only one of two simultaneous starts run the job', async () => {
+    let calls = 0;
+    registerJob('test-claim', {
+      label: 'Test',
+      description: 'Counts its runs.',
+      everyMs: 60_000,
+      run: async () => {
+        calls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 30));
+        return { stats: { calls } };
+      },
+    });
+    const [a, b] = await Promise.all([
+      runJob(db, 'test-claim', { env: {} }),
+      runJob(db, 'test-claim', { env: {} }),
+    ]);
+    expect([a, b].filter(Boolean)).toHaveLength(1);
+    expect(calls).toBe(1);
+    // Once it has finished, the next start runs again.
+    expect(await runJob(db, 'test-claim', { env: {} })).not.toBeNull();
+    expect(calls).toBe(2);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// maintenance
+// ---------------------------------------------------------------------------
+
+describe('maintenance', () => {
+  let handle: DbHandle;
+  let db: Db;
+
+  beforeAll(async () => {
+    handle = await openDb();
+    await migrate(handle.db);
+    db = handle.db;
+  });
+  afterAll(async () => handle.close());
+
+  it('thins old readings to the last of each day and keeps recent ones whole', async () => {
+    const HOUR = 3_600_000;
+    const DAY = 24 * HOUR;
+    const [token] = await db
+      .insert(tokens)
+      .values({ mint: address(900), symbol: 'TEST' })
+      .returning({ id: tokens.id });
+    const [program] = await db
+      .insert(programs)
+      .values({ address: address(901) })
+      .returning({ id: programs.id });
+    const at = (msAgo: number) => new Date(NOW.getTime() - msAgo);
+    // Four readings on one UTC day ten days ago (old), and four this morning.
+    const times = [10 * DAY + 6 * HOUR, 10 * DAY + 4 * HOUR, 10 * DAY + 2 * HOUR, 10 * DAY]
+      .concat([4 * HOUR, 3 * HOUR, 2 * HOUR, HOUR])
+      .map(at);
+    await db.insert(marketSnapshots).values(
+      times.map((capturedAt, i) => ({
+        tokenId: token!.id,
+        capturedAt,
+        price: i,
+        provider: 'test',
+      })),
+    );
+    // Activity keeps two weeks whole: twenty days ago is old, ten days is not.
+    await db.insert(programActivity).values(
+      [20 * DAY, 20 * DAY - HOUR, 20 * DAY - 2 * HOUR, 10 * DAY, 10 * DAY - HOUR].map((ms) => ({
+        programId: program!.id,
+        capturedAt: at(ms),
+        sampleSize: 1,
+        txPerHour: 1,
+        provider: 'test',
+        method: 'test',
+      })),
+    );
+    await db.insert(importRuns).values([
+      { job: 'projects', status: 'ok', startedAt: at(40 * DAY) },
+      { job: 'projects', status: 'ok', startedAt: at(DAY) },
+    ]);
+
+    const result = await runMaintenance(ctxFor(db, 'maintenance', false));
+
+    // The old day keeps one price, its latest; today's four stay.
+    const prices = await rows<{ price: number }>(
+      db,
+      sql`select price from market_snapshots where token_id = ${token!.id} order by captured_at`,
+    );
+    expect(prices.map((p) => Number(p.price))).toEqual([3, 4, 5, 6, 7]);
+    expect(result.stats).toMatchObject({ prices: 3, activity: 2, runs: 1 });
+    expect(await count(db, sql`select count(*)::int as n from program_activity`)).toBe(3);
+    expect(await count(db, sql`select count(*)::int as n from import_runs`)).toBe(1);
+
+    // Nothing left to thin on a second pass.
+    const again = await runMaintenance(ctxFor(db, 'maintenance', false));
+    expect(again.stats).toMatchObject({ prices: 0, activity: 0, runs: 0 });
   });
 });

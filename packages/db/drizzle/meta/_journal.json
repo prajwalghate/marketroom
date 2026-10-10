@@ -15,6 +15,13 @@
       "when": 1791649629771,
       "tag": "0001_dashing_white_queen",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791663739760,
+      "tag": "0002_fearless_sharon_ventura",
+      "breakpoints": true
     }
   ]
 }

@@ -29,7 +29,14 @@ it was checked.
   disk.
 - **Imports are continuous upkeep, not a one-off load.** Jobs per source, each
   on its own cadence, stalest records first, every run logged. They run when
-  pages are read (after the response) and from `/api/cron/upkeep`.
+  pages are read (after the response) and from `/api/cron/upkeep`. A job runs
+  on one server at a time: claiming a run is an insert that a unique index
+  lets only one server make, so instances waking together on a shared
+  database do not import twice.
+- **History is kept at the resolution it is read at.** Token prices stay
+  15-minute for a week and program activity hourly for two weeks; older
+  readings are thinned to the last of each day, and import logs go after 30
+  days — so a free hosted Postgres holds years of it.
 - **Imports never overwrite people.** Fields an editor sets are locked;
   rejected and merged records stay as tombstones so a re-import cannot
   resurrect them; aliases keep a merged duplicate's name resolving.

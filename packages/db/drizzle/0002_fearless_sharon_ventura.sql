@@ -1,0 +1,3 @@
+-- Close all but the newest running row per job, so the unique index can be built.
+UPDATE "import_runs" SET "status" = 'error', "finished_at" = now(), "error" = 'Interrupted: superseded by a newer run.' WHERE "status" = 'running' AND "id" NOT IN (SELECT max("id") FROM "import_runs" WHERE "status" = 'running' GROUP BY "job");--> statement-breakpoint
+CREATE UNIQUE INDEX "import_runs_one_running" ON "import_runs" USING btree ("job") WHERE "import_runs"."status" = 'running';

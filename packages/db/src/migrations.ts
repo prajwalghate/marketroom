@@ -95,4 +95,11 @@ export const MIGRATIONS: readonly Migration[] = [
       'ALTER TABLE "event_links" ADD COLUMN "created_at" timestamp with time zone DEFAULT now() NOT NULL;',
     ],
   },
+  {
+    tag: '0002_fearless_sharon_ventura',
+    statements: [
+      '-- Close all but the newest running row per job, so the unique index can be built.\nUPDATE "import_runs" SET "status" = \'error\', "finished_at" = now(), "error" = \'Interrupted: superseded by a newer run.\' WHERE "status" = \'running\' AND "id" NOT IN (SELECT max("id") FROM "import_runs" WHERE "status" = \'running\' GROUP BY "job");',
+      'CREATE UNIQUE INDEX "import_runs_one_running" ON "import_runs" USING btree ("job") WHERE "import_runs"."status" = \'running\';',
+    ],
+  },
 ];

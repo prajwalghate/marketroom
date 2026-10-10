@@ -45,6 +45,7 @@ export async function openDb(options: OpenOptions = {}): Promise<DbHandle> {
     // `prepare: false` keeps transaction-mode poolers (Neon, PgBouncer) happy.
     const client = postgres(options.url, { max: 5, prepare: false, onnotice: () => {} });
     const db = drizzle(client, { schema }) as unknown as Db;
+    isoDateParameters(client.options.serializers as Serializers);
     let host = 'postgres';
     try {
       host = new URL(options.url).hostname;
@@ -88,6 +89,24 @@ export async function openDb(options: OpenOptions = {}): Promise<DbHandle> {
     location: options.dir ?? 'memory',
     close: () => client.close(),
   };
+}
+
+type Serializers = Record<number, (value: unknown) => unknown>;
+
+/**
+ * Send JavaScript dates to postgres.js as ISO 8601.
+ *
+ * Drizzle replaces postgres.js's timestamp serializers with pass-throughs,
+ * expecting its column mappers to have made strings already. A `Date` inside
+ * a raw `sql` template never meets a mapper, so it reached Postgres as
+ * `Date.toString()` — "Mon Jul 15 2024 13:32:46 GMT+0530 (India Standard
+ * Time)" — which Postgres rejects. PGlite serializes dates itself, which is
+ * why this only showed against a hosted database.
+ */
+export function isoDateParameters(serializers: Serializers): void {
+  const iso = (value: unknown) => (value instanceof Date ? value.toISOString() : value);
+  // date, timestamp, timestamptz — postgres.js tags every Date as timestamptz.
+  for (const type of [1082, 1114, 1184]) serializers[type] = iso;
 }
 
 /** Rows from a raw query, whichever driver ran it. */
