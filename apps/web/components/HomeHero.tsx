@@ -1,7 +1,7 @@
 'use client';
 
 import type { AssetView } from '@marketroom/core';
-import { useCallback } from 'react';
+import { useCallback, type ReactNode } from 'react';
 import { useMarketViewState } from '@/lib/useMarketViewState';
 import { Hero } from './Hero';
 
@@ -15,10 +15,13 @@ import { Hero } from './Hero';
  * filters the table below and updates the URL.
  */
 export function HomeHero({
-  example,
+  aside,
+  claim,
   assets,
 }: {
-  example: AssetView | null;
+  /** Server-rendered, passed through untouched — this wrapper only owns search state. */
+  aside: ReactNode;
+  claim: { readonly listings: number; readonly untradable: number } | null;
   assets: readonly AssetView[];
 }) {
   const { queryInput, setQueryInput, commitQuery, cancelQueryWrite } = useMarketViewState();
@@ -37,7 +40,8 @@ export function HomeHero({
 
   return (
     <Hero
-      example={example}
+      aside={aside}
+      claim={claim}
       assets={assets}
       queryInput={queryInput}
       onQueryChange={setQueryInput}

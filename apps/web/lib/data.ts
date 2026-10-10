@@ -1,16 +1,34 @@
 import 'server-only';
 
-import { buildSnapshot, HyperliquidAdapter, SolanaAdapter } from '@marketroom/adapters';
+import {
+  buildSnapshot,
+  HyperliquidAdapter,
+  measureDepth,
+  SolanaAdapter,
+} from '@marketroom/adapters';
 import type {
+  AssetTrust,
   AssetView,
+  BoardStats,
   Candle,
+  DepthProbe,
   Interval,
   Listing,
+  MarketSession,
   MarketSnapshot,
   OrderBook,
+  ProbeIndex,
   VenueCostInputs,
 } from '@marketroom/core';
-import { bookSpread, candleRangeById } from '@marketroom/core';
+import {
+  assetTrust,
+  boardStats,
+  bookSpread,
+  candleRangeById,
+  REFERENCE_NOTIONAL_USD,
+  SMALL_TICKET_USD,
+  usEquitySession,
+} from '@marketroom/core';
 import { unstable_cache } from 'next/cache';
 
 /**
@@ -30,6 +48,9 @@ import { unstable_cache } from 'next/cache';
 
 const REVALIDATE_SECONDS = Number(process.env.SNAPSHOT_REVALIDATE_SECONDS ?? 15);
 
+/** True while `next build` is prerendering pages, as opposed to serving them. */
+const BUILDING = process.env.NEXT_PHASE === 'phase-production-build';
+
 const config = {
   hyperliquid: {
     apiUrl: process.env.NEXT_PUBLIC_HYPERLIQUID_API_URL ?? 'https://api.hyperliquid.xyz',
@@ -39,6 +60,7 @@ const config = {
   solana: {
     apiUrl: process.env.NEXT_PUBLIC_JUPITER_API_URL ?? 'https://lite-api.jup.ag',
     tradeUrl: 'https://jup.ag/swap',
+    rpcUrl: process.env.SOLANA_RPC_URL ?? 'https://api.mainnet-beta.solana.com',
   },
 };
 
@@ -143,6 +165,161 @@ export const getSparklineData = unstable_cache(
   ['sparklines'],
   { revalidate: 60, tags: ['sparklines'] },
 );
+
+// ---------------------------------------------------------------------------
+// Trust check
+// ---------------------------------------------------------------------------
+
+/**
+ * How long one measurement of the whole index is reused.
+ *
+ * Routed venues are the constraint. Every size and side on Solana is a quote
+ * against Jupiter's free tier, which rate-limits sustained traffic — measured
+ * during development, when a few thousand quotes in twenty minutes earned
+ * HTTP 429 for every request after. The index pass asks only for the two
+ * sizes a verdict reads, roughly 140 quotes, and reuses the result for five
+ * minutes: under thirty quotes a minute on average. Every figure on the page
+ * carries its measurement time, so the reader knows how old it is.
+ */
+const TRUST_REVALIDATE_SECONDS = 300;
+
+let inflightPass: Promise<ProbeIndex> | null = null;
+
+/** The sizes a verdict reads: the small ticket and the reference size. */
+const INDEX_ROUTED_SIZES = [SMALL_TICKET_USD, REFERENCE_NOTIONAL_USD];
+
+/**
+ * A measurement pass that has not finished by now is cut off, and whatever it
+ * could not measure is reported as "not measured".
+ *
+ * Without this a venue that hangs would hang the homepage with it. Being
+ * honest that a listing went unmeasured is cheap; a page that never arrives
+ * is not.
+ */
+const MEASUREMENT_DEADLINE_MS = 9_000;
+
+/**
+ * Every listing on every venue, probed: what a real order would fill at, right
+ * now. Books are walked at the full ladder (one request prices every size);
+ * routed venues at the sizes a verdict needs.
+ *
+ * One pass shared by every reader, exactly like the snapshot. The probes are
+ * the expensive part; turning them into verdicts is pure and runs per render.
+ */
+export const getProbes = unstable_cache(
+  async (): Promise<ProbeIndex> => {
+    // Concurrent cache misses in one process share one pass. A build
+    // prerenders dozens of pages at once, and each starting its own pass
+    // would multiply the load on both venues by the worker's concurrency.
+    inflightPass ??= (async () => {
+      const snapshot = await getSnapshot();
+      const listings = snapshot.assets.flatMap((view) => view.listings.map((l) => l.listing));
+      return measureDepth(listings, {
+        hyperliquid: config.hyperliquid,
+        solana: config.solana,
+        routedSizes: INDEX_ROUTED_SIZES,
+        signal: AbortSignal.timeout(MEASUREMENT_DEADLINE_MS),
+      });
+    })().finally(() => {
+      inflightPass = null;
+    });
+    return inflightPass;
+  },
+  // Separate keys for build and runtime. A build prerenders a hundred pages
+  // at once and its pass is routinely throttled by both venues; sharing its
+  // key would hand that throttled board to the first five minutes of real
+  // visitors after every deploy.
+  ['trust-probes-v2', BUILDING ? 'build' : 'runtime'],
+  { revalidate: TRUST_REVALIDATE_SECONDS, tags: ['trust'] },
+);
+
+/**
+ * The full ladder — $100 to $100k — for one asset's routed listings.
+ *
+ * The chart on a market page needs every size; the index does not. Measured
+ * per asset, on demand, and cached as long as the index pass, so a page that
+ * is read a thousand times costs eight quotes per token every five minutes.
+ */
+const getRoutedLadder = unstable_cache(
+  async (listings: Listing[]): Promise<ProbeIndex> =>
+    measureDepth(
+      listings.filter((listing) => listing.venue !== 'hyperliquid'),
+      {
+        solana: config.solana,
+        signal: AbortSignal.timeout(MEASUREMENT_DEADLINE_MS),
+      },
+    ),
+  ['trust-ladder-v2'],
+  { revalidate: TRUST_REVALIDATE_SECONDS, tags: ['trust'] },
+);
+
+export interface TrustBoard {
+  readonly assets: readonly AssetTrust[];
+  readonly stats: BoardStats;
+  readonly session: MarketSession;
+  readonly now: number;
+}
+
+export async function getTrustBoard(): Promise<TrustBoard> {
+  const [snapshot, probes] = await Promise.all([getSnapshot(), getProbes()]);
+  const now = Date.now();
+  const session = usEquitySession(now);
+  const assets = snapshot.assets.map((view) => assetTrust(view, probes, { now, session }));
+  return { assets, stats: boardStats(assets), session, now };
+}
+
+/**
+ * When each perp on this asset last traded.
+ *
+ * Per asset and short-lived: a recent-trades request weighs ten book requests
+ * against the venue's rate limit, so it is spent on the market someone is
+ * reading, never swept across the index.
+ */
+const getLastTrades = unstable_cache(
+  async (listings: Listing[]): Promise<Record<string, number | null>> => {
+    const adapter = new HyperliquidAdapter(config.hyperliquid);
+    const entries = await Promise.all(
+      listings
+        .filter((listing) => listing.venue === 'hyperliquid')
+        .map(async (listing) => {
+          const at = await adapter.fetchLastTradeAt(listing).catch(() => null);
+          return [listing.id, at] as const;
+        }),
+    );
+    return Object.fromEntries(entries);
+  },
+  ['last-trades'],
+  { revalidate: 30, tags: ['trust'] },
+);
+
+/**
+ * One asset's trust check: the shared probes, the full ladder for its routed
+ * listings, and last-trade times for its perps.
+ *
+ * A ladder that failed to measure never replaces an index probe that
+ * succeeded — falling back to two measured sizes beats four unmeasured ones.
+ */
+export async function getAssetTrust(view: AssetView): Promise<AssetTrust> {
+  const listings = view.listings.map((l) => l.listing);
+  const [probes, ladder, lastTrades] = await Promise.all([
+    getProbes(),
+    // Not while `next build` prerenders every market at once: that would be a
+    // few hundred routed quotes and a hundred trade lookups from one machine
+    // in seconds — a rate-limit storm for numbers that are replaced at the
+    // first runtime revalidation anyway. The build uses the shared pass.
+    BUILDING ? Promise.resolve({} as ProbeIndex) : getRoutedLadder(listings),
+    BUILDING ? Promise.resolve({} as Record<string, number | null>) : getLastTrades(listings),
+  ]);
+  const merged: Record<string, DepthProbe> = {};
+  for (const { listing } of view.listings) {
+    const full = ladder[listing.id];
+    const fullMeasured = full?.fills.some((f) => f.failure !== 'error') ?? false;
+    const probe = fullMeasured ? full : (probes[listing.id] ?? full);
+    if (probe) merged[listing.id] = { ...probe, lastTradeAt: lastTrades[listing.id] ?? null };
+  }
+  const now = Date.now();
+  return assetTrust(view, merged, { now, session: usEquitySession(now) });
+}
 
 // ---------------------------------------------------------------------------
 // Cost of exposure

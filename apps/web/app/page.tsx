@@ -1,15 +1,19 @@
+import type { Verdict } from '@marketroom/core';
 import {
   aggregateVolume24h,
-  bestContrastExample,
-  formatCompactUsd,
-  marketTotals,
+  formatNotional,
+  paperGapSurvival,
   primaryListing,
+  REFERENCE_NOTIONAL_USD,
+  SMALL_TICKET_USD,
+  worstDisplayGaps,
 } from '@marketroom/core';
 import { HomeHero } from '@/components/HomeHero';
 import { MarketExplorer } from '@/components/MarketExplorer';
 import { MarketPulse } from '@/components/MarketPulse';
+import { RealityCheck } from '@/components/trust/RealityCheck';
 import { VenueHealth } from '@/components/VenueHealth';
-import { getSnapshot, getSparklineData } from '@/lib/data';
+import { getSnapshot, getSparklineData, getTrustBoard } from '@/lib/data';
 
 /**
  * Market index — the primary surface.
@@ -36,6 +40,9 @@ import { getSnapshot, getSparklineData } from '@/lib/data';
 // The snapshot behind this page is reused for 15s; see `getSnapshot`.
 export const revalidate = 15;
 
+/** Headroom for a cold measurement pass; see the market page. */
+export const maxDuration = 30;
+
 export default async function MarketsPage({
   searchParams,
 }: {
@@ -46,7 +53,9 @@ export default async function MarketsPage({
   // parser is the only thing that decides what a query string means.
   await searchParams;
 
-  const snapshot = await getSnapshot();
+  // The trust board is one measurement pass over every listing, cached and
+  // shared like the snapshot it is built on.
+  const [snapshot, board] = await Promise.all([getSnapshot(), getTrustBoard()]);
 
   // Sparklines only for the busiest markets — 129 candle series per render
   // would cost more than everything else on the page combined, and rows far
@@ -61,39 +70,62 @@ export default async function MarketsPage({
 
   const sparklines = await getSparklineData(topListings);
 
-  const totals = marketTotals(snapshot.assets);
-  const venueCount = snapshot.venues.filter((venue) => venue.ok).length;
-
-  // Picked from live data: the most liquid asset whose venues are genuinely
-  // different products. Omitted entirely if none qualifies — the hero never
-  // fabricates an example.
-  const contrast = bestContrastExample(snapshot.assets);
+  const { stats } = board;
+  const untradable = stats.byVerdict['quote-only'] + stats.byVerdict['no-market'];
+  const survival = paperGapSurvival(board.assets);
+  const verdicts: Record<string, Verdict> = {};
+  for (const asset of board.assets) {
+    for (const listing of asset.listings) verdicts[listing.listingId] = listing.verdict;
+  }
+  const measured = stats.listings - stats.byVerdict.unmeasured;
 
   return (
     <div className="mr-container">
-      <HomeHero example={contrast} assets={snapshot.assets} />
+      <HomeHero
+        assets={snapshot.assets}
+        claim={measured > 0 ? { listings: stats.listings, untradable } : null}
+        aside={
+          <RealityCheck
+            worst={worstDisplayGaps(board.assets, 4)}
+            noMarketCount={stats.byVerdict['no-market']}
+            measuredAt={stats.oldestMeasurement}
+            now={board.now}
+            ticket={SMALL_TICKET_USD}
+          />
+        }
+      />
 
       {/* A description list, not four pairs of divs: these are label/value
           pairs, and the markup should say so — otherwise a screen reader reads
           eight unrelated strings. */}
       <dl className="mr-stat-row" style={{ margin: '0 0 26px' }}>
-        <StatCell label="Markets indexed" value={String(totals.assetCount)} />
-        <StatCell label="24h volume" value={formatCompactUsd(totals.volume24hUsd)} />
         <StatCell
-          label="On 2+ venues"
-          value={String(totals.multiVenueCount)}
-          hint="Assets listed on both Hyperliquid and Solana — the cross-venue comparison set"
+          label="Listings checked"
+          value={String(stats.listings)}
+          hint="Every listing on every venue, probed with real order sizes from $100 to $100,000"
         />
         <StatCell
-          label="Venues live"
-          value={`${venueCount} / ${snapshot.venues.length}`}
-          hint="Venues currently responding to data requests"
+          label={`Tradable at ${formatNotional(REFERENCE_NOTIONAL_USD)}`}
+          value={String(stats.byVerdict.tradable)}
+          tone="ok"
+          hint="A $10,000 order fills within 1% of the market price"
+        />
+        <StatCell
+          label="Price, no market"
+          value={String(untradable)}
+          tone={untradable > 0 ? 'danger' : undefined}
+          hint="Shows a price, but a $1,000 trade lands more than 2% from it — or cannot fill at all"
+        />
+        <StatCell
+          label="Gaps over 1% that survive $10k"
+          value={survival.headlined > 0 ? `${survival.survive} of ${survival.headlined}` : '—'}
+          hint="Cross-venue gaps over 1% on screen that still return a profit when both sides are traded at $10,000, before fees"
         />
       </dl>
 
       {/* The layer between the hero and the raw table. Without it the reader
           has to derive every insight from 111 rows themselves. */}
-      <MarketPulse assets={snapshot.assets} />
+      <MarketPulse assets={snapshot.assets} trust={board.assets} />
 
       <VenueHealth venues={snapshot.venues} />
 
@@ -103,15 +135,25 @@ export default async function MarketsPage({
         <h2 id="markets-heading" className="sr-only">
           All markets
         </h2>
-        <MarketExplorer assets={snapshot.assets} sparklines={sparklines} />
+        <MarketExplorer assets={snapshot.assets} sparklines={sparklines} verdicts={verdicts} />
       </section>
     </div>
   );
 }
 
-function StatCell({ label, value, hint }: { label: string; value: string; hint?: string }) {
+function StatCell({
+  label,
+  value,
+  hint,
+  tone,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  tone?: 'ok' | 'danger';
+}) {
   return (
-    <div className="mr-stat-cell">
+    <div className={tone ? `mr-stat-cell is-${tone}` : 'mr-stat-cell'}>
       <dt
         style={{
           fontSize: 'var(--mr-text-2xs)',

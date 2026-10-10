@@ -124,3 +124,50 @@ export function countryFlag(code: string | null): string {
     .filter(Boolean)
     .join(' ');
 }
+
+/**
+ * A percentage whose precision follows its size.
+ *
+ * Fill deviations span five orders of magnitude on the same page — 0.04% on
+ * NVDA, 3,016% on a dead pool — and one fixed precision renders one end of
+ * that range as noise and the other as `0.00%`.
+ */
+export function formatPercentAdaptive(
+  fraction: number | null | undefined,
+  { signed = false }: { signed?: boolean } = {},
+): string {
+  if (isMissing(fraction)) return EMPTY;
+  const percent = fraction * 100;
+  const magnitude = Math.abs(percent);
+  // A measured, non-zero cost must never print as 0.00% — that reads as free.
+  if (magnitude > 0 && magnitude < 0.005) return `${signed ? (percent > 0 ? '+' : '−') : ''}<0.01%`;
+  const dp = magnitude >= 100 ? 0 : magnitude >= 10 ? 1 : 2;
+  const body = magnitude.toLocaleString('en-US', {
+    minimumFractionDigits: dp,
+    maximumFractionDigits: dp,
+  });
+  const sign = !signed || percent === 0 ? '' : percent > 0 ? '+' : '−';
+  return `${sign}${body}%`;
+}
+
+/** An order size in words: `$10,000`. Sentences read sizes; they do not decode `$10k`. */
+export function formatNotional(usd: number): string {
+  return `$${Math.round(usd).toLocaleString('en-US')}`;
+}
+
+/** An order size for a tight label: `$10k`, `$100`, `$1.5M`. */
+export function formatNotionalShort(usd: number): string {
+  if (usd >= 1e6) return `$${trimZero((usd / 1e6).toFixed(1))}M`;
+  if (usd >= 1e3) return `$${trimZero((usd / 1e3).toFixed(1))}k`;
+  return `$${Math.round(usd)}`;
+}
+
+const trimZero = (value: string) => value.replace(/\.0$/, '');
+
+/**
+ * A threshold, as a round number: `1%`, `0.5%`, `2%`. Cut-offs are chosen to be
+ * round, and printing one as `1.00%` makes it read like a measurement.
+ */
+export function formatThreshold(fraction: number): string {
+  return `${Number((fraction * 100).toFixed(2))}%`;
+}

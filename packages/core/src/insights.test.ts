@@ -36,6 +36,7 @@ const listing = (id: string, kind: Listing['kind'] = 'perpetual'): Listing => ({
   redemption: null,
   eligibility: null,
   backing: null,
+  controls: null,
   sources: [],
 });
 

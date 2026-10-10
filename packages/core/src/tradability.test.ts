@@ -24,6 +24,7 @@ const listing = (id: string, venue: VenueId): Listing => ({
   redemption: null,
   eligibility: null,
   backing: null,
+  controls: null,
   sources: [],
 });
 

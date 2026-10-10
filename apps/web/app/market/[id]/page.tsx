@@ -8,7 +8,6 @@ import {
   formatPrice,
   primaryListing,
   priceChange24h,
-  venueSpread,
 } from '@marketroom/core';
 import { assetById } from '@marketroom/catalog';
 import { Badge, PriceChange, SectionTitle } from '@marketroom/ui';
@@ -20,7 +19,14 @@ import { ExposurePanel, ExposurePanelFallback } from '@/components/ExposurePanel
 import { ProductStructure, RiskCallout } from '@/components/ProductStructure';
 import { DepthPanel } from '@/components/DepthPanel';
 import { VenueComparison } from '@/components/VenueComparison';
-import { getAssetView, getCandlesForRange, getOrderBook, getSnapshot } from '@/lib/data';
+import { TrustPanel } from '@/components/trust/TrustPanel';
+import {
+  getAssetTrust,
+  getAssetView,
+  getCandlesForRange,
+  getOrderBook,
+  getSnapshot,
+} from '@/lib/data';
 import { Suspense } from 'react';
 
 /**
@@ -35,6 +41,13 @@ import { Suspense } from 'react';
  */
 
 export const revalidate = 15;
+
+/**
+ * Headroom for a cold measurement pass. A warm page renders in milliseconds;
+ * the first render after the probes expire waits on them, and is cut off by
+ * the measurement deadline well inside this.
+ */
+export const maxDuration = 30;
 
 /** Pre-render every market at build time so navigation is a cache hit. */
 export async function generateStaticParams() {
@@ -67,18 +80,19 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
   const price = consolidatedPrice(view);
   const change = primary?.quote ? priceChange24h(primary.quote) : null;
   const volume = aggregateVolume24h(view);
-  const spread = venueSpread(view);
 
   // Charts and depth exist only where a venue supports them. Fetched in
   // parallel so the slowest one bounds the page, not the sum.
   const chartable = view.listings.find(({ listing }) => listing.venue === 'hyperliquid')?.listing;
-  const [candles, book] = await Promise.all([
+  const [candles, book, trust] = await Promise.all([
     // Fetched through the range table, not a separate fixed lookback — the
     // chart labels this as the default range, and a 14-day series captioned
     // "past week" is the label lying about its own data.
     chartable ? getCandlesForRange(chartable, DEFAULT_CANDLE_RANGE) : Promise.resolve([]),
     chartable ? getOrderBook(chartable) : Promise.resolve(null),
+    getAssetTrust(view),
   ]);
+  const now = Date.now();
 
   const snapshot = await getSnapshot();
   const peers = asset.peers
@@ -177,6 +191,12 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
         </div>
       </header>
 
+      {/* ── Trust check ──────────────────────────────────────────────── */}
+      {/* First, above the chart. A price chart answers "where has it been";
+          this answers "is the price on this page one you could actually get" —
+          and if it is not, every number below it should be read in that light. */}
+      <TrustPanel trust={trust} now={now} />
+
       <div className="mr-grid-2">
         <div style={{ minWidth: 0 }}>
           {/* ── Chart ──────────────────────────────────────────────────── */}
@@ -222,24 +242,10 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
 
           {/* ── Cross-venue comparison — the product thesis ────────────── */}
           <section style={{ marginBottom: 22 }}>
-            <SectionTitle
-              action={
-                spread && (
-                  // "spread" is a claim that these are two prices you could
-                  // trade between. When one leg cannot absorb an order it is a
-                  // quote gap and nothing more, so the label and the tone both
-                  // change — VenueComparison below gives the full reason.
-                  <Badge
-                    tone={spread.comparable ? 'warn' : 'neutral'}
-                    mono
-                    title={spread.comparable ? undefined : spread.reasons.join(' ')}
-                  >
-                    {(spread.fraction * 100).toFixed(2)}%{' '}
-                    {spread.comparable ? 'spread' : 'quote gap'}
-                  </Badge>
-                )
-              }
-            >
+            {/* No gap badge here any more: the trust check above prices the gap
+                at a real order size, which is the only version of the number
+                worth a headline. */}
+            <SectionTitle>
               {view.listings.length > 1 ? 'Same ticker, different products' : 'Listing'}
             </SectionTitle>
             <VenueComparison view={view} />

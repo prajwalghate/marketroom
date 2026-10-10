@@ -1,5 +1,6 @@
 import '@marketroom/ui/tokens.css';
 import './globals.css';
+import './trust.css';
 
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';

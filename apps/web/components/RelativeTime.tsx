@@ -21,12 +21,19 @@ export function RelativeTime({
   epochMs,
   /** How often to re-render. Freshness cues do not need to tick every second. */
   intervalMs = 15_000,
+  /**
+   * The server's clock at render time. Without it the first paint can only say
+   * "just now", which on a two-minute-old measurement is a small lie told at
+   * exactly the moment a trust surface is being judged.
+   */
+  serverNow,
 }: {
   epochMs: number;
   intervalMs?: number;
+  serverNow?: number;
 }) {
-  // Seeded from the server-supplied timestamp so SSR and first paint agree.
-  const [now, setNow] = useState(epochMs);
+  // Seeded from server-supplied values so SSR and first paint agree.
+  const [now, setNow] = useState(serverNow ?? epochMs);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -44,7 +51,9 @@ export function RelativeTime({
       // server's own clock advanced mid-render.
       suppressHydrationWarning
     >
-      {mounted ? formatRelativeTime(epochMs, now) : formatRelativeTime(epochMs, epochMs)}
+      {mounted
+        ? formatRelativeTime(epochMs, now)
+        : formatRelativeTime(epochMs, serverNow ?? epochMs)}
     </time>
   );
 }

@@ -10,7 +10,16 @@
  * so that mistake cannot be made by accident.
  */
 
-import type { Candle, Interval, Listing, OrderBook, Quote, Venue } from '@marketroom/core';
+import type {
+  Candle,
+  DepthProbe,
+  Interval,
+  Listing,
+  OrderBook,
+  Quote,
+  Venue,
+} from '@marketroom/core';
+import { bookSpread, fillsFromBook, PROBE_SIZES_USD } from '@marketroom/core';
 import { listingIdFor, resolveAssetId } from '@marketroom/catalog';
 import { getJson, num, postJson, requireNum } from '../http';
 import { VenueError, type VenueAdapter, type VenueCapabilities } from '../venue';
@@ -188,10 +197,20 @@ export class HyperliquidAdapter implements VenueAdapter {
       eligibility:
         'Derivatives trading is restricted in several jurisdictions, including the United States. Eligibility is determined by the venue, not by this index.',
       backing:
-        'Nothing. This is a synthetic contract that settles in USDC against an oracle price — no share is held anywhere on your behalf. You are exposed to the oracle, the deployer and liquidation.',
+        "Nothing. This is a synthetic contract that settles in USDC against an oracle price — no share is held anywhere on your behalf. On weekends and US holidays that oracle follows this market's own order book (a 30-minute average) rather than any stock exchange.",
+      // HIP-3: the deployer defines the oracle and holds `haltTrading`, which
+      // per Hyperliquid's docs cancels all orders and settles positions to the
+      // current mark price.
+      controls:
+        "The market's deployer sets the oracle and can halt trading, which cancels every order and settles every open position at the current mark price.",
       sources: [
         { label: 'Venue', url: this.config.tradeUrl, kind: 'issuer' },
         { label: 'Market specifications', url: 'https://docs.trade.xyz', kind: 'docs' },
+        {
+          label: 'Oracle methodology',
+          url: 'https://docs.trade.xyz/perpetuals/mechanics/oracle-price',
+          kind: 'docs',
+        },
         {
           label: 'HIP-3 documentation',
           url: 'https://hyperliquid.gitbook.io/hyperliquid-docs',
@@ -322,10 +341,21 @@ export class HyperliquidAdapter implements VenueAdapter {
     }
   }
 
-  async fetchOrderBook(listing: Listing, signal?: AbortSignal): Promise<OrderBook> {
+  /**
+   * L2 book, 20 levels a side.
+   *
+   * `nSigFigs` asks the venue to aggregate levels into price buckets, which
+   * trades precision for reach: at full precision NVDA's 20 levels span 0.08%
+   * of price, at 3 significant figures they span ~8% and hold 20× the size.
+   */
+  async fetchOrderBook(
+    listing: Listing,
+    signal?: AbortSignal,
+    nSigFigs?: 2 | 3 | 4 | 5,
+  ): Promise<OrderBook> {
     try {
       const wire = await this.infoRequest<WireBook>(
-        { type: 'l2Book', coin: listing.venueSymbol },
+        { type: 'l2Book', coin: listing.venueSymbol, ...(nSigFigs ? { nSigFigs } : {}) },
         signal,
       );
 
@@ -344,6 +374,92 @@ export class HyperliquidAdapter implements VenueAdapter {
       };
     } catch (error) {
       throw new VenueError('hyperliquid', `Failed to fetch book for ${listing.venueSymbol}`, error);
+    }
+  }
+
+  /**
+   * What an order of each size would fill at, walked against the live book.
+   *
+   * Full precision first: it is exact for every order it can absorb. Only
+   * sizes it cannot absorb are re-walked against aggregated books, finest
+   * first, and those fills are marked `book-aggregated` — each bucket is priced
+   * at its far edge, so they overstate the cost slightly, never understate it.
+   * Most liquid markets never need the second request.
+   */
+  async probeDepth(
+    listing: Listing,
+    sizes: readonly number[] = PROBE_SIZES_USD,
+    signal?: AbortSignal,
+  ): Promise<DepthProbe> {
+    const measuredAt = Date.now();
+    const book = await this.fetchOrderBook(listing, signal);
+    const spread = bookSpread(book);
+    const base = {
+      listingId: listing.id,
+      venue: 'hyperliquid' as const,
+      measuredAt,
+      source: 'Hyperliquid order book (l2Book)',
+      lastTradeAt: null,
+    };
+
+    if (!spread) {
+      return {
+        ...base,
+        displayedPrice: null,
+        fills: sizes.flatMap((notionalUsd) =>
+          (['buy', 'sell'] as const).map((side) => ({
+            side,
+            notionalUsd,
+            price: null,
+            method: 'book' as const,
+            failure: 'no-liquidity' as const,
+          })),
+        ),
+      };
+    }
+
+    let fills = fillsFromBook(book, spread.mid, 'book', sizes);
+    for (const nSigFigs of [4, 3] as const) {
+      if (!fills.some((f) => f.failure === 'insufficient-depth')) break;
+      const coarse = fillsFromBook(
+        await this.fetchOrderBook(listing, signal, nSigFigs),
+        spread.mid,
+        'book-aggregated',
+        sizes,
+      );
+      fills = fills.map((fill) =>
+        fill.failure !== 'insufficient-depth'
+          ? fill
+          : (coarse.find(
+              (c) => c.side === fill.side && c.notionalUsd === fill.notionalUsd && c.price !== null,
+            ) ?? fill),
+      );
+    }
+
+    return { ...base, displayedPrice: spread.mid, fills };
+  }
+
+  /**
+   * Epoch ms of the most recent trade, or `null` if the venue returned none.
+   *
+   * Ten times the rate-limit weight of a book request, so it is fetched for a
+   * market someone is looking at, not swept across the index.
+   */
+  async fetchLastTradeAt(listing: Listing, signal?: AbortSignal): Promise<number | null> {
+    try {
+      const trades = await this.infoRequest<{ time?: number }[]>(
+        { type: 'recentTrades', coin: listing.venueSymbol },
+        signal,
+      );
+      if (!Array.isArray(trades) || trades.length === 0) return null;
+      const latest = Math.max(...trades.map((t) => (typeof t.time === 'number' ? t.time : 0)));
+      return latest > 0 ? latest : null;
+    } catch (error) {
+      throw new VenueError(
+        'hyperliquid',
+        `Failed to fetch trades for ${listing.venueSymbol}`,
+        error,
+      );
     }
   }
 

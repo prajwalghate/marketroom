@@ -1,5 +1,5 @@
 import type { AssetView, Listing } from '@marketroom/core';
-import { formatLeverage } from '@marketroom/core';
+import { formatLeverage, formatNotionalShort } from '@marketroom/core';
 import { VenueBadge } from '@marketroom/ui';
 
 /**
@@ -43,7 +43,13 @@ function rowsFor(listing: Listing): StructureRow[] {
     },
     {
       label: 'Redeemable',
-      value: listing.redemption?.available ? 'Yes, with the issuer' : 'No',
+      value: listing.redemption?.available
+        ? `For cash, via the issuer${
+            listing.redemption.minimumUsd
+              ? ` · ${formatNotionalShort(listing.redemption.minimumUsd)} min`
+              : ''
+          }`
+        : 'No',
       emphasis: listing.redemption?.available ? 'none' : 'warn',
     },
     { label: 'Dividends', value: listing.rights.dividends ? 'Reinvested' : 'None' },
@@ -54,6 +60,15 @@ function rowsFor(listing: Listing): StructureRow[] {
       emphasis: listing.maxLeverage > 1 ? 'warn' : 'none',
     },
     { label: 'Issuer', value: listing.issuer ?? 'None — venue-deployed contract' },
+    ...(listing.controls
+      ? [
+          {
+            label: isPerp ? 'Deployer can' : 'Issuer can',
+            value: isPerp ? 'Halt and settle the market' : 'Freeze, pause and move tokens',
+            emphasis: 'warn' as const,
+          },
+        ]
+      : []),
   ];
 }
 

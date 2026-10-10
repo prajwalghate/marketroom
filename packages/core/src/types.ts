@@ -169,6 +169,18 @@ export interface Listing {
    */
   readonly backing: string | null;
 
+  /**
+   * What someone other than the holder can do to this position, unilaterally.
+   *
+   * Rights say what you are owed; this says what can be done to you. For a
+   * Token-2022 xStock it is the issuer's live on-chain keys — freeze, pause,
+   * and a permanent delegate able to move or burn tokens in any wallet. For a
+   * HIP-3 perp it is the deployer's power to halt the market and settle every
+   * position at the mark. `null` when no one holds such a power, or it is not
+   * known — never as a reassurance we have not checked.
+   */
+  readonly controls: string | null;
+
   /** Authoritative links — issuer, terms, attestations, explorer. */
   readonly sources: readonly SourceLink[];
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetView, Candle, SortKey } from '@marketroom/core';
+import type { AssetView, Candle, SortKey, Verdict } from '@marketroom/core';
 import { assetClassFacets, countryFacets, sectorFacets, selectAssets } from '@marketroom/core';
 import { EmptyState } from '@marketroom/ui';
 import { FilterBar } from './FilterBar';
@@ -27,9 +27,11 @@ import { MarketTable } from './MarketTable';
 export interface MarketExplorerProps {
   assets: readonly AssetView[];
   sparklines: Record<string, Candle[]>;
+  /** Trust verdict per listing id. */
+  verdicts?: Readonly<Record<string, Verdict>>;
 }
 
-export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
+export function MarketExplorer({ assets, sparklines, verdicts }: MarketExplorerProps) {
   const { filters, sort, queryInput, setFilters, setSort, reset, isDefault } = useMarketViewState();
 
   const deferredQuery = useDeferredValue(queryInput);
@@ -89,6 +91,7 @@ export function MarketExplorer({ assets, sparklines }: MarketExplorerProps) {
           sparklines={sparklines}
           sort={effectiveSort}
           onSortChange={setSort}
+          verdicts={verdicts}
         />
       )}
     </>

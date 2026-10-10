@@ -1,0 +1,698 @@
+/**
+ * Trust check surfaces.
+ *
+ * Kept apart from globals.css so the trust work can evolve without colliding
+ * with everything else on the page. Tokens only — no raw colour appears here,
+ * and every text/fill pairing below is one the contrast gate already measures
+ * (`--mr-up` on `--mr-up-soft`, `--mr-warn` on `--mr-warn-soft`, …).
+ *
+ * Verdict colour follows the token file's rule: data is the only thing allowed
+ * to be colourful, and a verdict is data. Chrome around it stays neutral.
+ */
+
+/* ── Verdict palette ─────────────────────────────────────────────────────── */
+
+.mr-verdict,
+.mr-vcard,
+.mr-reality-row,
+.mr-trustcell {
+  --v-fg: var(--mr-text-muted);
+  --v-bg: var(--mr-surface-3);
+  --v-line: var(--mr-border-strong);
+}
+.is-tradable {
+  --v-fg: var(--mr-up);
+  --v-bg: var(--mr-up-soft);
+  --v-line: var(--mr-up);
+}
+.is-thin {
+  --v-fg: var(--mr-warn);
+  --v-bg: var(--mr-warn-soft);
+  --v-line: var(--mr-warn);
+}
+.is-quote-only,
+.is-no-market {
+  --v-fg: var(--mr-down);
+  --v-bg: var(--mr-down-soft);
+  --v-line: var(--mr-down);
+}
+
+.mr-verdict {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  padding: 2px 8px;
+  font-size: var(--mr-text-2xs);
+  font-weight: 600;
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+  color: var(--v-fg);
+  /* The tint is translucent, so its contrast depends on what is behind it: on
+     a table row's grey it measured 4.48:1 in light mode, under the 4.5 gate.
+     Painting it over an opaque surface pins the pair to the one the token
+     file rates — tone on its own soft fill over --mr-surface-1 — wherever the
+     chip lands. */
+  background: linear-gradient(var(--v-bg), var(--v-bg)), var(--mr-surface-1);
+  border-radius: var(--mr-radius-sm);
+  white-space: nowrap;
+}
+.mr-verdict.is-md {
+  font-size: var(--mr-text-xs);
+  padding: 3px 9px;
+}
+.mr-verdict.is-lg {
+  font-size: var(--mr-text-sm);
+  padding: 4px 11px;
+}
+.mr-verdict-glyph {
+  font-weight: 700;
+}
+
+.mr-status {
+  display: inline-flex;
+  justify-content: center;
+  min-width: 1.15em;
+  font-weight: 700;
+  color: var(--mr-text-subtle);
+}
+.mr-status.is-pass {
+  color: var(--mr-up);
+}
+.mr-status.is-warn {
+  color: var(--mr-warn);
+}
+.mr-status.is-fail {
+  color: var(--mr-down);
+}
+
+/* ── Market page panel ───────────────────────────────────────────────────── */
+
+.mr-trust {
+  margin: 0 0 28px;
+}
+
+.mr-trust-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 16px;
+  margin-bottom: 12px;
+}
+
+.mr-trust-title,
+.mr-trust-subhead {
+  margin: 0;
+  font-size: var(--mr-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mr-text-subtle);
+}
+.mr-trust-subhead {
+  margin-bottom: 10px;
+}
+
+.mr-trust-meta {
+  margin: 0;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-subtle);
+}
+
+/* Underlined at rest, not only on hover: these links sit inside running text,
+   and colour alone does not distinguish a link from the words around it
+   (WCAG 1.4.1). */
+.mr-trust-link {
+  color: var(--mr-accent);
+  text-decoration: underline;
+  text-decoration-color: var(--mr-accent-border);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+.mr-trust-link:hover {
+  color: var(--mr-accent-hover);
+  text-decoration-color: currentColor;
+}
+
+.mr-trust-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 12px;
+}
+
+.mr-vcard {
+  position: relative;
+  padding: 16px 16px 14px 19px;
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+  /* The verdict as a stripe down the leading edge: legible at a glance, and
+     it never competes with the numbers inside the card. */
+  box-shadow: inset 3px 0 0 var(--v-line);
+}
+
+.mr-vcard-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.mr-vcard-venue {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mr-vcard-headline {
+  margin: 12px 0 14px;
+  font-size: var(--mr-text-md);
+  font-weight: 500;
+  line-height: 1.45;
+  letter-spacing: -0.01em;
+  color: var(--mr-text);
+  text-wrap: pretty;
+}
+
+.mr-vcard-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0 0 12px;
+  padding: 10px 0 0;
+  border-top: 1px solid var(--mr-border-subtle);
+}
+.mr-vcard-stats dt {
+  margin-bottom: 3px;
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+.mr-vcard-stats dd {
+  margin: 0;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text);
+}
+
+.mr-vcard-checks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.mr-vcard-checks li {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px 2px 5px;
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-muted);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-full);
+}
+
+.mr-trust-gap {
+  margin: 12px 0 0;
+  padding: 12px 14px;
+  font-size: var(--mr-text-sm);
+  line-height: 1.6;
+  color: var(--mr-text-muted);
+  background: var(--mr-surface-2);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+}
+.mr-trust-gap strong {
+  color: var(--mr-text);
+  font-weight: 600;
+}
+.mr-trust-gap-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: var(--mr-text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mr-text-subtle);
+}
+.mr-trust-gap .mr-trust-pos {
+  color: var(--mr-up);
+}
+.mr-trust-gap .mr-trust-neg {
+  color: var(--mr-down);
+}
+
+.mr-trust-chart,
+.mr-trust-receipts {
+  margin-top: 16px;
+  padding: 14px 14px 12px;
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+}
+
+/* ── Fill curve ──────────────────────────────────────────────────────────── */
+
+.mr-fc {
+  margin: 0;
+}
+
+.mr-fc-plot {
+  width: 100%;
+}
+
+.mr-fc-svg {
+  display: block;
+  max-width: 100%;
+  border-radius: var(--mr-radius);
+  touch-action: pan-y;
+}
+
+.mr-fc-tick {
+  font-family: var(--mr-font-mono);
+  font-size: 10.5px;
+  fill: var(--mr-text-subtle);
+}
+.mr-fc-tick.is-active {
+  fill: var(--mr-text);
+  font-weight: 600;
+}
+
+.mr-fc-miss {
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.mr-fc-readout {
+  display: grid;
+  gap: 6px;
+  margin-top: 10px;
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-muted);
+}
+
+.mr-fc-readout-size {
+  font-weight: 600;
+  color: var(--mr-text);
+}
+.mr-fc-ref {
+  font-weight: 400;
+  color: var(--mr-text-subtle);
+}
+
+.mr-fc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+}
+
+.mr-fc-swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  transform: translateY(1px);
+}
+
+.mr-fc-name {
+  min-width: 128px;
+  color: var(--mr-text);
+}
+
+.mr-fc-side {
+  font-size: var(--mr-text-2xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mr-text-subtle);
+}
+
+.mr-fc-dev {
+  color: var(--mr-text-muted);
+}
+.mr-fc-dev.is-wide {
+  color: var(--mr-down);
+  font-weight: 600;
+}
+
+.mr-fc-none {
+  color: var(--mr-text-subtle);
+  font-style: italic;
+}
+
+.mr-fc-key {
+  font-size: var(--mr-text-2xs);
+  line-height: 1.5;
+  color: var(--mr-text-subtle);
+}
+
+/* ── Receipts ────────────────────────────────────────────────────────────── */
+
+.mr-receipt + .mr-receipt {
+  border-top: 1px solid var(--mr-border-subtle);
+}
+
+.mr-receipt-summary {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 12px;
+  padding: 10px 2px;
+  cursor: pointer;
+  font-size: var(--mr-text-sm);
+  color: var(--mr-text);
+  list-style-position: inside;
+}
+.mr-receipt-summary:hover .mr-receipt-name {
+  text-decoration: underline;
+}
+.mr-receipt-count {
+  font-size: var(--mr-text-xs);
+  color: var(--mr-text-subtle);
+}
+
+.mr-receipt-list {
+  display: grid;
+  gap: 14px;
+  margin: 4px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.mr-receipt-item {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  gap: 6px;
+}
+.mr-receipt-item > .mr-status {
+  padding-top: 1px;
+  font-size: var(--mr-text-sm);
+}
+
+.mr-receipt-q {
+  margin: 0;
+  font-size: var(--mr-text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mr-text-subtle);
+}
+.mr-receipt-finding {
+  margin: 2px 0 6px;
+  font-size: var(--mr-text-sm);
+  line-height: 1.5;
+  color: var(--mr-text);
+}
+
+.mr-receipt-evidence {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 4px 16px;
+  margin: 0;
+}
+.mr-receipt-evidence > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 3px 0;
+  font-size: var(--mr-text-xs);
+  border-bottom: 1px dashed var(--mr-border-subtle);
+}
+.mr-receipt-evidence dt {
+  color: var(--mr-text-subtle);
+}
+.mr-receipt-evidence dd {
+  margin: 0;
+  text-align: right;
+  color: var(--mr-text);
+}
+
+.mr-receipt-source {
+  margin: 6px 0 0;
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+}
+
+.mr-receipt-fills {
+  width: 100%;
+  margin: 0 0 12px;
+  border-collapse: collapse;
+  font-size: var(--mr-text-xs);
+}
+.mr-receipt-fills caption {
+  padding-bottom: 6px;
+  text-align: left;
+  font-size: var(--mr-text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--mr-text-subtle);
+}
+.mr-receipt-fills th,
+.mr-receipt-fills td {
+  padding: 6px 8px;
+  text-align: right;
+  border-bottom: 1px solid var(--mr-border-subtle);
+}
+.mr-receipt-fills th:first-child,
+.mr-receipt-fills th:last-child,
+.mr-receipt-fills td:last-child {
+  text-align: left;
+}
+.mr-receipt-fills thead th {
+  font-weight: 500;
+  color: var(--mr-text-subtle);
+}
+.mr-receipt-nofill {
+  color: var(--mr-text-subtle);
+  font-style: italic;
+}
+
+@media (max-width: 560px) {
+  .mr-vcard-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .mr-fc-name {
+    min-width: 0;
+    flex-basis: 100%;
+  }
+  .mr-receipt-fills th:last-child,
+  .mr-receipt-fills td:last-child {
+    display: none;
+  }
+}
+
+/* ── Homepage: shown vs. real ────────────────────────────────────────────── */
+
+.mr-hero-claim {
+  color: var(--mr-text);
+  font-weight: 600;
+  /* The one live number in the hero gets a quiet underline in the verdict
+     colour rather than a coloured word — legible without hue. */
+  text-decoration: underline;
+  text-decoration-color: var(--mr-down);
+  text-decoration-thickness: 2px;
+  text-underline-offset: 4px;
+}
+
+.mr-reality {
+  padding: 16px 16px 12px;
+  background: var(--mr-surface-1);
+  border: 1px solid var(--mr-border);
+  border-radius: var(--mr-radius-lg);
+}
+
+.mr-reality-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 8px;
+}
+
+.mr-reality-title {
+  margin: 0;
+  font-size: var(--mr-text-xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--mr-text-subtle);
+}
+
+.mr-reality-meta {
+  font-size: var(--mr-text-2xs);
+  color: var(--mr-text-subtle);
+  white-space: nowrap;
+}
+
+.mr-reality-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.mr-reality-row {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 6px 10px 10px;
+  margin: 0 -6px 0 -10px;
+  color: inherit;
+  text-decoration: none;
+  border-radius: var(--mr-radius);
+  box-shadow: inset 2px 0 0 var(--v-line);
+  transition: background var(--mr-duration) var(--mr-ease);
+}
+.mr-reality-list li + li .mr-reality-row {
+  border-top: 1px solid var(--mr-border-subtle);
+  border-radius: 0 0 var(--mr-radius) var(--mr-radius);
+}
+.mr-reality-row:hover {
+  background: var(--mr-surface-2);
+}
+
+.mr-reality-id {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.mr-reality-ticker {
+  font-weight: 600;
+  color: var(--mr-text);
+}
+
+.mr-reality-figs {
+  display: grid;
+  gap: 1px;
+  min-width: 0;
+  font-size: var(--mr-text-xs);
+}
+.mr-reality-shown,
+.mr-reality-real {
+  display: flex;
+  gap: 6px;
+  white-space: nowrap;
+}
+.mr-reality-shown {
+  color: var(--mr-text-subtle);
+}
+.mr-reality-shown .mr-num {
+  text-decoration: line-through;
+  text-decoration-color: var(--mr-text-subtle);
+}
+.mr-reality-real {
+  color: var(--mr-text);
+}
+.mr-reality-k {
+  min-width: 46px;
+  color: var(--mr-text-subtle);
+}
+
+.mr-reality-gap {
+  font-size: var(--mr-text-lg);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--v-fg);
+}
+
+.mr-reality-foot {
+  margin: 10px 0 0;
+  padding-top: 10px;
+  font-size: var(--mr-text-xs);
+  line-height: 1.5;
+  color: var(--mr-text-muted);
+  border-top: 1px solid var(--mr-border-subtle);
+}
+.mr-reality-foot strong {
+  color: var(--mr-down);
+}
+
+/* ── Stat row tones ─────────────────────────────────────────────────────── */
+
+.mr-stat-cell.is-ok dd {
+  color: var(--mr-up);
+}
+.mr-stat-cell.is-danger dd {
+  color: var(--mr-down);
+}
+
+/* ── Pulse: gaps vs. execution ──────────────────────────────────────────── */
+
+.mr-gapcell {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  white-space: nowrap;
+}
+.mr-gapcell-arrow {
+  color: var(--mr-text-subtle);
+}
+
+/* ── Table: trust column ────────────────────────────────────────────────── */
+
+.mr-trustcells {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+}
+.mr-trustcell {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+@media (max-width: 560px) {
+  .mr-table tbody td[data-col='trust'] {
+    display: none;
+  }
+}
+
+/* ── Method page ────────────────────────────────────────────────────────── */
+
+.mr-method-prose {
+  max-width: 72ch;
+  font-size: var(--mr-text-base);
+  line-height: 1.7;
+  color: var(--mr-text-muted);
+}
+.mr-method-prose strong {
+  color: var(--mr-text);
+}
+.mr-method-prose ul {
+  margin: 0 0 1em;
+  padding-left: 1.2em;
+}
+.mr-method-prose li + li {
+  margin-top: 0.5em;
+}
+.mr-method-prose code {
+  font-family: var(--mr-font-mono);
+  font-size: 0.92em;
+  color: var(--mr-text);
+}
+
+.mr-method-verdicts {
+  display: grid;
+  gap: 10px;
+  margin: 14px 0 0;
+}
+.mr-method-verdicts > div {
+  display: grid;
+  grid-template-columns: 132px minmax(0, 1fr);
+  align-items: baseline;
+  gap: 14px;
+}
+.mr-method-verdicts dd {
+  margin: 0;
+}
+
+@media (max-width: 560px) {
+  .mr-method-verdicts > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}

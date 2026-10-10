@@ -215,7 +215,7 @@ export function VenueComparison({ view }: { view: AssetView }) {
               >
                 {listing.kind === 'perpetual'
                   ? 'Synthetic perpetual tracking an oracle price. Leveraged exposure only — no ownership, dividends or voting. Carries liquidation, oracle and deployer risk.'
-                  : 'Custody-backed token. Redeemable for the underlying share, subject to issuer terms and eligibility. Carries issuer and custody risk.'}
+                  : 'Custody-backed token. Redeemable with the issuer for cash at the market price, not for the share. Carries issuer, custody and key-holder risk.'}
               </p>
 
               {/* ── Structure, below the CTA so card CTAs stay aligned ──── */}
@@ -230,6 +230,17 @@ export function VenueComparison({ view }: { view: AssetView }) {
                   because "backed by nothing" is the single most consequential
                   fact about a perp, and it is otherwise only implied. */}
               {listing.backing && <TrustBlock title="Backing">{listing.backing}</TrustBlock>}
+
+              {/* Rights say what you are owed; this says what can be done to
+                  you. It sits beside backing because both answer "what could
+                  go wrong that the price will not show". */}
+              {listing.controls && (
+                <TrustBlock
+                  title={listing.kind === 'perpetual' ? 'Deployer powers' : 'Issuer powers'}
+                >
+                  {listing.controls}
+                </TrustBlock>
+              )}
 
               {listing.eligibility && (
                 <TrustBlock title="Eligibility">{listing.eligibility}</TrustBlock>

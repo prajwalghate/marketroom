@@ -1,13 +1,16 @@
-import type { AssetView } from '@marketroom/core';
+import type { AssetTrust, AssetView } from '@marketroom/core';
 import {
   formatCompactUsd,
+  formatNotional,
   formatPercentAbs,
+  formatPercentAdaptive,
+  paperGaps,
+  REFERENCE_NOTIONAL_USD,
   topByVolume,
-  topDislocations,
   topGainers,
   topLosers,
 } from '@marketroom/core';
-import { Badge, EmptyState } from '@marketroom/ui';
+import { EmptyState, VisuallyHidden } from '@marketroom/ui';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 
@@ -21,10 +24,16 @@ import type { ReactNode } from 'react';
  * All objective metrics — no "best" or "top pick" framing. The product surfaces
  * what the data says and leaves interpretation to the reader.
  */
-export function MarketPulse({ assets }: { assets: readonly AssetView[] }) {
+export function MarketPulse({
+  assets,
+  trust,
+}: {
+  assets: readonly AssetView[];
+  trust: readonly AssetTrust[];
+}) {
   const gainers = topGainers(assets, 4);
   const losers = topLosers(assets, 4);
-  const dislocations = topDislocations(assets, 4);
+  const gaps = paperGaps(trust, 4);
   const volume = topByVolume(assets, 4);
 
   return (
@@ -56,25 +65,48 @@ export function MarketPulse({ assets }: { assets: readonly AssetView[] }) {
         )}
       </Panel>
 
+      {/* Was "Venue dislocations", ranked by the gap on screen alone — which
+          ranked dead pools first, since the emptier the pool the staler the
+          print. The ranking stays the one a price screen would use; what
+          changed is that every gap now carries what it returns when traded. */}
       <Panel
-        title="Venue dislocations"
-        hint="Same underlying, different price across venues"
+        title="Gaps vs. execution"
+        hint={`Widest gaps on screen, and what a ${formatNotional(REFERENCE_NOTIONAL_USD)} round trip returns`}
         href="/trends"
       >
-        {dislocations.length === 0 ? (
+        {gaps.length === 0 ? (
           <Quiet>No asset is quoted on more than one venue right now.</Quiet>
         ) : (
           <ul className="mr-pulse-list">
-            {dislocations.map(({ view, spread }) => (
+            {gaps.map(({ asset, gap }) => (
               <Row
-                key={view.asset.id}
-                id={view.asset.id}
-                symbol={view.asset.symbol}
-                name={view.asset.name}
+                key={asset.view.asset.id}
+                id={asset.view.asset.id}
+                symbol={asset.view.asset.symbol}
+                name={asset.view.asset.name}
                 value={
-                  <Badge tone={spread.fraction > 0.01 ? 'warn' : 'neutral'} mono>
-                    {formatPercentAbs(spread.fraction)}
-                  </Badge>
+                  <span className="mr-gapcell">
+                    <span className="mr-num mr-pulse-muted">{formatPercentAbs(gap.paper)}</span>
+                    <span aria-hidden="true" className="mr-gapcell-arrow">
+                      →
+                    </span>
+                    <span
+                      className={`mr-num ${
+                        gap.executable !== null && gap.executable > 0
+                          ? 'mr-right-yes'
+                          : 'mr-right-no'
+                      }`}
+                    >
+                      {gap.executable === null
+                        ? "can't fill"
+                        : formatPercentAdaptive(gap.executable, { signed: true })}
+                    </span>
+                    <VisuallyHidden>
+                      {gap.executable === null
+                        ? ' apart on screen; one side cannot fill the trade.'
+                        : ` apart on screen; traded at size it returns ${formatPercentAdaptive(gap.executable, { signed: true })}.`}
+                    </VisuallyHidden>
+                  </span>
                 }
               />
             ))}

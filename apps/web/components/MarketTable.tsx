@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetView, Candle, SortKey } from '@marketroom/core';
+import type { AssetView, Candle, SortKey, Verdict } from '@marketroom/core';
 import {
   aggregateLiquidity,
   aggregateOpenInterest,
@@ -8,20 +8,29 @@ import {
   consolidatedPrice,
   countryFlag,
   EMPTY,
-  formatPercentAbs,
   formatCompactUsd,
   primaryListing,
   priceChange24h,
-  venueSpread,
 } from '@marketroom/core';
 import { Badge, PriceChange, Sparkline, VenueBadge } from '@marketroom/ui';
 import Link from 'next/link';
 import { useWindowVirtualizer } from '@tanstack/react-virtual';
 import { useRouter } from 'next/navigation';
 import type { MouseEvent as ReactMouseEvent } from 'react';
-import { memo, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import {
+  createContext,
+  memo,
+  useContext,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import { useLivePrices } from '@/lib/useLivePrices';
 import { TickingPrice } from './TickingPrice';
+import { VerdictBadge } from './trust/TrustBits';
+
+const NO_VERDICTS: Readonly<Record<string, Verdict>> = {};
 
 /**
  * The market table.
@@ -40,7 +49,17 @@ export interface MarketTableProps {
   sparklines: Record<string, Candle[]>;
   sort: SortKey;
   onSortChange: (sort: SortKey) => void;
+  /** Trust verdict per listing id, from the server's last measurement pass. */
+  verdicts?: Readonly<Record<string, Verdict>>;
 }
+
+/**
+ * Verdicts reach the rows through context rather than props: rows are rendered
+ * by three different bodies (plain, windowed, virtual), and threading one more
+ * prop through each would touch every one of them for a value that never
+ * changes between renders.
+ */
+const VerdictContext = createContext<Readonly<Record<string, Verdict>>>({});
 
 interface Column {
   key: string;
@@ -62,7 +81,7 @@ const COLUMNS: Column[] = [
   { key: 'volume', label: 'Volume 24h', sort: 'volume', numeric: true, hideOnPhone: true },
   { key: 'oi', label: 'Open interest', sort: 'openInterest', numeric: true, hideOnMobile: true },
   { key: 'venues', label: 'Venues', sort: 'venues', hideOnMobile: true },
-  { key: 'spread', label: 'Spread', numeric: true, hideOnMobile: true },
+  { key: 'trust', label: 'Trust', hideOnMobile: true },
 ];
 
 /**
@@ -71,7 +90,13 @@ const COLUMNS: Column[] = [
  */
 const ASCENDING: ReadonlySet<SortKey> = new Set<SortKey>(['symbol', 'sector', 'changeAsc']);
 
-export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTableProps) {
+export function MarketTable({
+  assets,
+  sparklines,
+  sort,
+  onSortChange,
+  verdicts,
+}: MarketTableProps) {
   const live = useLivePrices();
   const router = useRouter();
 
@@ -106,70 +131,72 @@ export function MarketTable({ assets, sparklines, sort, onSortChange }: MarketTa
   };
 
   return (
-    <div className="mr-table-scroll">
-      <table className="mr-table">
-        {/* The table is the page's main content but had no accessible name, so
+    <VerdictContext.Provider value={verdicts ?? NO_VERDICTS}>
+      <div className="mr-table-scroll">
+        <table className="mr-table">
+          {/* The table is the page's main content but had no accessible name, so
             it was announced only as "table". */}
-        <caption className="sr-only">
-          Tokenized equity markets, {assets.length} rows. Use the column headers to sort.
-        </caption>
-        <thead>
-          <tr>
-            {COLUMNS.map((column) => {
-              const active = column.sort === sort || column.altSort === sort;
-              const direction = ASCENDING.has(sort) ? 'ascending' : 'descending';
+          <caption className="sr-only">
+            Tokenized equity markets, {assets.length} rows. Use the column headers to sort.
+          </caption>
+          <thead>
+            <tr>
+              {COLUMNS.map((column) => {
+                const active = column.sort === sort || column.altSort === sort;
+                const direction = ASCENDING.has(sort) ? 'ascending' : 'descending';
 
-              return (
-                <th
-                  key={column.key}
-                  data-col={column.key}
-                  className={[
-                    column.numeric ? 'is-numeric' : '',
-                    column.hideOnMobile ? 'mr-hide-sm' : '',
-                    column.hideOnPhone ? 'mr-hide-xs' : '',
-                  ]
-                    .filter(Boolean)
-                    .join(' ')}
-                  aria-sort={column.sort ? (active ? direction : 'none') : undefined}
-                >
-                  {column.sort ? (
-                    <button
-                      type="button"
-                      className="mr-sort-btn"
-                      data-active={active}
-                      /* Clicking the active column reverses it where core has a
+                return (
+                  <th
+                    key={column.key}
+                    data-col={column.key}
+                    className={[
+                      column.numeric ? 'is-numeric' : '',
+                      column.hideOnMobile ? 'mr-hide-sm' : '',
+                      column.hideOnPhone ? 'mr-hide-xs' : '',
+                    ]
+                      .filter(Boolean)
+                      .join(' ')}
+                    aria-sort={column.sort ? (active ? direction : 'none') : undefined}
+                  >
+                    {column.sort ? (
+                      <button
+                        type="button"
+                        className="mr-sort-btn"
+                        data-active={active}
+                        /* Clicking the active column reverses it where core has a
                          reverse key; otherwise it re-applies the same sort. */
-                      onClick={() =>
-                        onSortChange(
-                          active && column.altSort
-                            ? sort === column.sort
-                              ? column.altSort
-                              : column.sort!
-                            : column.sort!,
-                        )
-                      }
-                    >
-                      {column.label}
-                      {active && (
-                        <span aria-hidden="true">{direction === 'ascending' ? '↑' : '↓'}</span>
-                      )}
-                    </button>
-                  ) : (
-                    column.label
-                  )}
-                </th>
-              );
-            })}
-          </tr>
-        </thead>
-        <VirtualBody
-          assets={assets}
-          sparklines={sparklines}
-          live={live}
-          onRowClick={handleRowClick}
-        />
-      </table>
-    </div>
+                        onClick={() =>
+                          onSortChange(
+                            active && column.altSort
+                              ? sort === column.sort
+                                ? column.altSort
+                                : column.sort!
+                              : column.sort!,
+                          )
+                        }
+                      >
+                        {column.label}
+                        {active && (
+                          <span aria-hidden="true">{direction === 'ascending' ? '↑' : '↓'}</span>
+                        )}
+                      </button>
+                    ) : (
+                      column.label
+                    )}
+                  </th>
+                );
+              })}
+            </tr>
+          </thead>
+          <VirtualBody
+            assets={assets}
+            sparklines={sparklines}
+            live={live}
+            onRowClick={handleRowClick}
+          />
+        </table>
+      </div>
+    </VerdictContext.Provider>
   );
 }
 
@@ -386,7 +413,7 @@ const MarketRow = memo(function MarketRow({
   const volume = aggregateVolume24h(view);
   const openInterest = aggregateOpenInterest(view);
   const liquidity = aggregateLiquidity(view);
-  const spread = venueSpread(view);
+  const verdicts = useContext(VerdictContext);
 
   return (
     <tr ref={measureRef} data-index={index} data-asset-id={asset.id}>
@@ -471,31 +498,27 @@ const MarketRow = memo(function MarketRow({
         </div>
       </td>
 
-      {/* Spread earns its own column rather than being crowded in beside the
-          venue dots. It is the one number on this row that only exists because
-          an asset is listed twice, so burying it next to an unrelated control
-          understated it — and a per-row sentence repeated 40 times is noise.
-          The column header names the metric; the cell is just the figure. */}
-      <td data-col="spread" className="is-numeric mr-hide-sm">
-        {spread ? (
-          // A non-comparable gap keeps its number but loses the warn tone: the
-          // colour means "worth your attention as a dislocation", and this is
-          // not one. The title says why, since the cell has no room to.
-          <Badge
-            tone={!spread.comparable ? 'neutral' : spread.fraction > 0.01 ? 'warn' : 'neutral'}
-            mono
-            title={
-              spread.comparable ? undefined : `Not a tradable gap. ${spread.reasons.join(' ')}`
-            }
-          >
-            {spread.comparable ? '' : '~'}
-            {formatPercentAbs(spread.fraction)}
-          </Badge>
-        ) : (
-          <span className="mr-num" style={{ color: 'var(--mr-text-subtle)' }}>
-            {EMPTY}
-          </span>
-        )}
+      {/* Trust replaced Spread. The spread was the paper gap between displayed
+          prices, which ranked dead pools as the biggest dislocations; the
+          verdict says whether each venue's price is one you could actually get.
+          One chip per venue, in the same order as the venue dots beside it. */}
+      <td data-col="trust" className="mr-hide-sm">
+        <div className="mr-trustcells">
+          {view.listings.map(({ listing }) => {
+            const verdict = verdicts[listing.id];
+            return verdict ? (
+              <span key={listing.id} className={`mr-trustcell is-${verdict}`}>
+                <VenueBadge venue={listing.venue} compact />
+                <VerdictBadge verdict={verdict} size="sm" />
+              </span>
+            ) : null;
+          })}
+          {view.listings.every(({ listing }) => !verdicts[listing.id]) && (
+            <span className="mr-num" style={{ color: 'var(--mr-text-subtle)' }}>
+              {EMPTY}
+            </span>
+          )}
+        </div>
       </td>
     </tr>
   );

@@ -39,6 +39,16 @@ function isRetryable(error: unknown): boolean {
 }
 
 async function once(url: string, init: RequestInit, options: RequestOptions): Promise<unknown> {
+  // An `abort` listener only hears aborts that happen *after* it is attached.
+  // A request started once a caller's deadline has already passed would never
+  // hear it, and would run its full timeout and retries instead — which is how
+  // a nine-second measurement deadline once stretched a page past sixty.
+  if (options.signal?.aborted) {
+    throw options.signal.reason instanceof Error
+      ? options.signal.reason
+      : Object.assign(new Error('Aborted'), { name: 'AbortError' });
+  }
+
   const timeout = new AbortController();
   const timer = setTimeout(() => timeout.abort(), options.timeoutMs ?? DEFAULT_TIMEOUT_MS);
 
@@ -72,7 +82,8 @@ async function withRetry(url: string, init: RequestInit, options: RequestOptions
       return await once(url, init, options);
     } catch (error) {
       lastError = error;
-      if (attempt === attempts - 1 || !isRetryable(error)) break;
+      // A caller that has given up is not served by a retry.
+      if (attempt === attempts - 1 || !isRetryable(error) || options.signal?.aborted) break;
       // Exponential backoff with jitter, so two clients retrying don't sync up.
       await sleep(2 ** attempt * 250 + Math.random() * 100);
     }
@@ -123,4 +134,33 @@ export function requireNum(value: unknown, field: string): number {
   if (parsed === null)
     throw new Error(`Expected numeric value for "${field}", got ${String(value)}`);
   return parsed;
+}
+
+/**
+ * Map with bounded concurrency, settling every item.
+ *
+ * Measuring depth means a request per listing per size. Firing them all at
+ * once is how a well-behaved client becomes a rate-limited one; running them
+ * one at a time turns a three-second measurement into a minute. One failed
+ * item must not discard the rest, so results are settled, in input order.
+ */
+export async function mapSettledLimit<T, R>(
+  items: readonly T[],
+  limit: number,
+  fn: (item: T, index: number) => Promise<R>,
+): Promise<PromiseSettledResult<R>[]> {
+  const results: PromiseSettledResult<R>[] = new Array(items.length);
+  let next = 0;
+  const worker = async () => {
+    while (next < items.length) {
+      const index = next++;
+      try {
+        results[index] = { status: 'fulfilled', value: await fn(items[index]!, index) };
+      } catch (reason) {
+        results[index] = { status: 'rejected', reason };
+      }
+    }
+  };
+  await Promise.all(Array.from({ length: Math.max(1, Math.min(limit, items.length)) }, worker));
+  return results;
 }

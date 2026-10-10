@@ -33,6 +33,9 @@ const LINKS = [
   ['xstocks legal overview', 'https://docs.xstocks.fi/docs/product-legal-overview'],
   ['xstocks issuance & redemption', 'https://docs.xstocks.fi/docs/issuance-and-redemption'],
   ['backed prospectus', 'https://assets.backed.fi/legal-documentation'],
+  ['xstocks redemption terms', 'https://docs.xstocks.fi/docs/issuance-and-redemption/market-flow'],
+  ['xstocks proof of reserves', 'https://defi.xstocks.fi/proof-of-reserves'],
+  ['trade[XYZ] oracle methodology', 'https://docs.trade.xyz/perpetuals/mechanics/oracle-price'],
   ['solscan mint (templated)', `https://solscan.io/token/${NVDA_MINT}`],
 ];
 
