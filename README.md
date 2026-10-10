@@ -1,13 +1,47 @@
 # Marketroom
 
-**Every tokenized equity, across every venue.**
+**Research the Solana ecosystem — every project connected to its team, investors, funding, programs, token and news, each fact with its source.**
 
-The same ticker can hide very different products. `NVDA` on Hyperliquid is a perpetual
-future — leveraged price exposure, no ownership. `NVDAx` on Solana is a custody-backed
-token — a redeemable claim on a real share. Marketroom indexes both, side by side, with
-live prices and the structural differences made explicit.
+Marketroom is a research database for Solana. Projects, people, investor
+organisations, funding rounds, tokens, Solana programs, news and events are
+separate records joined by typed connections — _this person works at this
+project_, _this investor led this round_, _this project operates this
+program_ — so every name on a profile links to its own profile. Every fact
+carries its source and the date it was checked; funding comes only from
+announcements and funding databases, never from on-chain transfers; on-chain
+activity is labelled as the estimate it is. Imports keep it current; editors
+keep it correct.
 
-Long-term direction: the DexScreener / DefiLlama of on-chain equities.
+Profiles read like a terminal, not a table dump: price candles for a project's
+token, value-locked history, funding and event timelines, investment maps,
+round-size and deal charts, a section rail that follows you down the page, and
+a header search that groups every match by type with counts. Charts draw their
+colour from a fixed data palette, and every chart also ships its numbers as a
+table for screen readers.
+
+| Section          | What it answers                                                                                           |
+| ---------------- | --------------------------------------------------------------------------------------------------------- |
+| Overview         | SOL, value locked, stablecoins, volume, fees; funding by category and month; latest rounds; top investors |
+| Projects         | What every Solana project does, its category, status, latest funding, activity, checks                    |
+| Project profiles | Price candles, value locked, tokens, team, events and funding timelines, investors, programs, sources     |
+| People           | Founders, team, angels and partners, connected to their projects, rounds and organisations                |
+| Investors        | Investment map, round sizes led or joined, deals per year, portfolio, co-investors                        |
+| Rounds           | Amount, date, type, valuation, investors — and which source states each fact                              |
+| Programs         | Solana programs, who runs them, upgradeability, verified builds, estimated activity                       |
+| Tokens           | Market snapshots from the provider, with the provider's time and ours                                     |
+| Fundraising      | Every disclosed round, by type, size, category, year and investor, with trend charts                      |
+| Calendar         | A week strip, then rounds as announced, launches, milestones, incidents, conferences, hackathons          |
+| Rankings         | The same records, ordered: value locked, funding, activity, deals, round size                             |
+| Search           | Projects, tokens, investors, people and programs from the header, by name, ticker or address              |
+| Updates & alerts | What changed — in the header bell for watched records, and as RSS feeds                                   |
+| Watchlist        | Projects, people, investors and tokens you follow, kept in your browser                                   |
+| API              | Free, read-only JSON for all of it, with sources and checked dates                                        |
+| Editors          | `/admin`: review queue, corrections, sources, duplicates, imports, change log                             |
+| Tokenized Assets | Tokenized equities across venues, with the trust check on every listing                                   |
+
+How the database works, for readers: `/method`. The decision record:
+[docs/adr/0003-connected-research-database.md](docs/adr/0003-connected-research-database.md).
+Sources and their limits: [docs/research/03-solana-data-sources.md](docs/research/03-solana-data-sources.md).
 
 ---
 
@@ -20,21 +54,34 @@ pnpm dev
 
 Open http://localhost:3000.
 
-**No API keys required.** Every data source is a public, unauthenticated endpoint.
-`.env` is optional — copy `.env.example` to `.env.local` only to point at different
-endpoints or tune cache timings.
+**No API keys and no database to install.** Without `DATABASE_URL`, the app keeps an
+embedded Postgres (PGlite) in `apps/web/.data/` and fills it on first visit: projects
+and token markets within a minute, funding, programs, news and events over the next
+few minutes. The editors' dashboard at `/admin` is open in development; set
+`ADMIN_TOKENS` to require sign-in (production requires it).
+
+Imports run in the background while you browse. For UI work, `MARKETROOM_UPKEEP=off pnpm dev`
+keeps the dev server quiet by leaving the schedule to `/api/cron/upkeep`.
+
+For production, set `DATABASE_URL` to a Postgres database — migrations run on start.
+Optional keys add coverage: `DEFILLAMA_API_KEY` (the complete funding feed),
+`GITHUB_TOKEN` (more contributors per hour), `COINGECKO_API_KEY` (all-time highs) — see
+`.env.example`.
 
 Requires Node ≥ 20.11 and pnpm 9.
 
-| Command              | What it does                                                  |
-| -------------------- | ------------------------------------------------------------- |
-| `pnpm dev`           | Dev server, Turbopack                                         |
-| `pnpm build`         | Production build of every package                             |
-| `pnpm typecheck`     | `tsc --noEmit` across the workspace                           |
-| `pnpm test`          | Vitest across the workspace                                   |
-| `pnpm lint`          | ESLint across the workspace                                   |
-| `pnpm format`        | Prettier write                                                |
-| `pnpm catalog:check` | Fails if the live venue lists a market the catalog is missing |
+| Command                                 | What it does                                                  |
+| --------------------------------------- | ------------------------------------------------------------- |
+| `pnpm dev`                              | Dev server, Turbopack                                         |
+| `pnpm build`                            | Production build of every package                             |
+| `pnpm typecheck`                        | `tsc --noEmit` across the workspace                           |
+| `pnpm test`                             | Vitest across the workspace                                   |
+| `pnpm lint`                             | ESLint across the workspace                                   |
+| `pnpm format`                           | Prettier write                                                |
+| `pnpm catalog:check`                    | Fails if the live venue lists a market the catalog is missing |
+| `pnpm contrast`                         | Measures every token pairing against WCAG contrast            |
+| `pnpm a11y`                             | axe plus keyboard and focus checks against a running server   |
+| `pnpm --filter @marketroom/db generate` | SQL migration from a schema change, embedded for runtime      |
 
 ---
 
@@ -42,21 +89,24 @@ Requires Node ≥ 20.11 and pnpm 9.
 
 ```
 apps/web            Next.js 15 App Router — thin, composition only
+  components/charts Chart kit: sparklines, pies, bars, columns, candles
 packages/
   core              Entities + pure derivations. Zero dependencies.
-  adapters          ALL network I/O. One adapter per venue.
+  adapters          ALL network I/O. One adapter per venue or data source.
+  db                The research database: schema, migrations, imports, reads
   catalog           Curated market data. One file per asset.
   ui                Design system — tokens + presentational primitives.
   config            Shared tsconfig / eslint
 docs/
-  research          Reference teardown, data-source study, proposal
+  research          Data-source studies and the architecture
   adr               Architecture decision records
 ```
 
-**Dependencies point inward.** `web → ui → core`, `web → adapters → core`. `core` imports
-nothing. A violation fails CI rather than being caught in review.
+**Dependencies point inward.** `web → ui → core`, `web → adapters → core`,
+`web → db → adapters → core`. `core` imports nothing. A violation fails CI rather than
+being caught in review.
 
-### The central model
+### Tokenized assets: the central model
 
 An **Asset** (the underlying company) is separate from a **Listing** (one tradable claim
 on it, on one venue):
@@ -87,6 +137,23 @@ states:
 ---
 
 ## Data sources
+
+The research database, all public and free by default:
+
+| Source                   | Provides                                                                 | Auth     |
+| ------------------------ | ------------------------------------------------------------------------ | -------- |
+| DefiLlama                | Projects, categories, value locked, fees; funding rounds; incidents      | optional |
+| Jupiter                  | Token price, market cap, volume, liquidity, holders; swap-program labels | none     |
+| GeckoTerminal            | Daily price candles from a token's deepest Solana pool                   | none     |
+| OtterSec verified builds | Which programs were reproduced from public source                        | none     |
+| Solana RPC               | Program loader, upgrade authority, last deploy, activity estimates       | none     |
+| GitHub                   | Organisations and the people committing to a project's repositories      | optional |
+| News feeds, solana.com   | Headlines and summaries; conferences, hackathons and meetups             | none     |
+
+Cadences, limits and the paid upgrade path:
+[`docs/research/03-solana-data-sources.md`](docs/research/03-solana-data-sources.md).
+
+The tokenized-assets section:
 
 | Source                 | Provides                                      | Auth |
 | ---------------------- | --------------------------------------------- | ---- |
@@ -126,9 +193,15 @@ a raw colour value may appear.
 
 Governing principle: **the data is the only thing allowed to be colourful.** Chrome is
 neutral, hairlines are untinted, one restrained accent is reserved for interactive
-affordance, and the saturation budget goes to price direction because that is the only
-colour carrying meaning. Direction is never signalled by hue alone — every price also
-carries a sign and an arrow glyph.
+affordance, and the saturation budget goes to data: price direction, and an eight-hue
+data palette (`--mr-data-1…8`) for categories and chart series, each hue measured at 3:1
+against both card surfaces. Direction is never signalled by hue alone — every price also
+carries a sign and an arrow glyph — and every chart has a table behind it.
+
+Motion is opt-out: the price strip under the header scrolls on its own, pauses under the
+pointer and on focus, has a pause button that is remembered, and stays still for anyone
+who asks the system for reduced motion. The theme follows the operating system until the
+reader picks one.
 
 ---
 
@@ -157,8 +230,8 @@ workspace from there, and builds the app in place.
 > the Next app and find `.next` beside it. Driving it from the repo root with a
 > `buildCommand` and `outputDirectory: apps/web/.next` compiles fine and then fails with
 > _"The Next.js output directory was not found"_ — the build succeeds and the deploy
-> still dies. There is deliberately **no `vercel.json`** in this repo; it was the cause,
-> not the cure.
+> still dies. The only `vercel.json` is `apps/web/vercel.json`, and it holds nothing but
+> the daily upkeep cron: no build settings.
 
 Or from the CLI:
 
@@ -177,21 +250,27 @@ TypeScript source and are compiled by Next through `transpilePackages`, so `next
 alone produces everything. Turborepo still runs `typecheck`, `test` and `contrast` in CI,
 but the deploy does not need it.
 
-**No environment variables are required.** Every data source is a public, unauthenticated
-endpoint. The vars in `.env.example` only point at alternative endpoints (e.g. a testnet)
-or tune the cache, and all have working defaults in code.
+**No environment variable is required to deploy**, but three make production what it
+should be:
+
+| Variable       | Without it                                                                                                                                                                                                                               |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL` | Each server instance keeps its own embedded database in `/tmp` and rebuilds it from the public sources after a cold start — a working demo, not a database. Any Postgres works; adding Neon from the Vercel Marketplace sets it for you. |
+| `ADMIN_TOKENS` | The editors' dashboard does not exist in production.                                                                                                                                                                                     |
+| `CRON_SECRET`  | `/api/cron/upkeep` refuses every call, so imports run only when pages are read.                                                                                                                                                          |
+
+Every data source is public; the optional keys in `.env.example` add coverage.
 
 ### What gets rendered how
 
-| Route               | Mode        |                                                                         |
-| ------------------- | ----------- | ----------------------------------------------------------------------- |
-| `/`                 | Dynamic     | Reads `searchParams` so a shared filtered link arrives already filtered |
-| `/market/[id]`      | SSG         | Every market prerendered at build time                                  |
-| `/trends`, `/about` | Static      |                                                                         |
-| `/api/snapshot`     | Cached JSON | `s-maxage=15, stale-while-revalidate=60`, set by the route handler      |
-
-`/` being dynamic costs little — the data underneath is the shared cached snapshot, so
-filtered links serve in tens of milliseconds rather than hitting an upstream API.
+| Route                                   | Mode    |                                                                         |
+| --------------------------------------- | ------- | ----------------------------------------------------------------------- |
+| `/`, `/projects`, profiles, directories | Dynamic | Read from the research database through a one-minute in-process cache   |
+| `/tokenized-assets`                     | Dynamic | Reads `searchParams` so a shared filtered link arrives already filtered |
+| `/market/[id]`                          | SSG     | Every market prerendered at build time                                  |
+| `/method`, `/about`, `/api-docs`        | Static  |                                                                         |
+| `/api/v1/*`                             | JSON    | Cached briefly at the edge; every record carries its sources            |
+| `/api/cron/upkeep`                      | Cron    | Daily, from `apps/web/vercel.json`, with `CRON_SECRET`                  |
 
 ---
 
@@ -200,6 +279,9 @@ filtered links serve in tens of milliseconds rather than hitting an upstream API
 - [Data sources](docs/research/01-data-sources.md) — every endpoint, verified live
 - [Architecture](docs/research/02-architecture.md) — stack, structure, decisions
 - [ADR 0001](docs/adr/0001-asset-listing-split.md) — why Asset and Listing are separate
+- [ADR 0002](docs/adr/0002-solana-research-platform.md) — the Solana research platform and its routes
+- [ADR 0003](docs/adr/0003-connected-research-database.md) — the connected research database, evidence and upkeep
+- [Solana data sources](docs/research/03-solana-data-sources.md) — what powers each figure, cadences, paid upgrade path
 
 ---
 
@@ -217,7 +299,9 @@ Marketroom aggregates public market data and is not affiliated with Hyperliquid,
 trade[XYZ], Backed Finance or any issuer. Nothing here is investment advice. Perpetual
 futures confer leveraged price exposure, not ownership; tokenized equities carry issuer,
 custody and redemption risk. Figures come from third-party venue APIs and may be stale,
-thin or wrong — verify every number at the source before acting on it.
+thin or wrong — verify every number at the source before acting on it. Research records
+(funding, people, programs) are imported from public sources and say which; activity
+figures are estimates and are labelled as such.
 
 ## License
 

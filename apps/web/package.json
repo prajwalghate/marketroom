@@ -4,7 +4,7 @@
   "private": true,
   "license": "MIT",
   "scripts": {
-    "dev": "next dev --turbopack",
+    "dev": "node --max-old-space-size=8192 node_modules/next/dist/bin/next dev --turbopack",
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
@@ -13,14 +13,17 @@
     "a11y": "node scripts/a11y.mjs"
   },
   "dependencies": {
+    "@electric-sql/pglite": "0.5.8",
     "@marketroom/adapters": "workspace:*",
     "@marketroom/catalog": "workspace:*",
     "@marketroom/core": "workspace:*",
+    "@marketroom/db": "workspace:*",
     "@marketroom/ui": "workspace:*",
     "@tanstack/react-virtual": "^3.11.2",
     "clsx": "^2.1.1",
     "lightweight-charts": "^4.2.3",
     "next": "15.5.27",
+    "postgres": "3.4.9",
     "react": "19.0.8",
     "react-dom": "19.0.8"
   },

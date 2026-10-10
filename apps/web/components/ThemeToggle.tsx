@@ -6,15 +6,32 @@ import { useEffect, useState } from 'react';
  * Light/dark toggle.
  *
  * The initial theme is applied by an inline script in `layout.tsx` before
- * first paint, so this component only has to stay in sync afterwards — it never
- * causes a flash of the wrong theme.
+ * first paint — the reader's saved choice, or else the operating system's —
+ * so this component only has to stay in sync afterwards and never causes a
+ * flash of the wrong theme. Until the reader picks one, the page follows the
+ * system as it changes.
  */
 export function ThemeToggle() {
   const [theme, setTheme] = useState<'dark' | 'light'>('dark');
 
   useEffect(() => {
-    const stored = localStorage.getItem('mr-theme');
-    if (stored === 'light') setTheme('light');
+    const root = document.documentElement;
+    setTheme(root.getAttribute('data-theme') === 'light' ? 'light' : 'dark');
+    let stored: string | null = null;
+    try {
+      stored = localStorage.getItem('mr-theme');
+    } catch {
+      // Storage blocked: follow the system.
+    }
+    if (stored === 'light' || stored === 'dark') return;
+    const query = window.matchMedia('(prefers-color-scheme: light)');
+    const follow = () => {
+      const next = query.matches ? 'light' : 'dark';
+      root.setAttribute('data-theme', next);
+      setTheme(next);
+    };
+    query.addEventListener('change', follow);
+    return () => query.removeEventListener('change', follow);
   }, []);
 
   const toggle = () => {

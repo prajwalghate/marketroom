@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+    <channel>
+        <title>Solana News Feed</title>
+        <link>https://solana.com/news</link>
+        <description>Stay up to date with the latest Solana News</description>
+        <lastBuildDate>Wed, 07 Oct 2026 23:30:00 GMT</lastBuildDate>
+        <docs>https://validator.w3.org/feed/docs/rss2.html</docs>
+        <generator>https://github.com/jpmonette/feed</generator>
+        <language>en</language>
+        <image>
+            <title>Solana News Feed</title>
+            <url>https://solana.com/media-assets/_next/static/media/favicon.b615f892.png</url>
+            <link>https://solana.com/news</link>
+        </image>
+        <copyright>© 2026 Solana Foundation. All rights reserved.</copyright>
+        <atom:link href="https://solana.com/news/rss.xml" rel="self" type="application/rss+xml"/>
+        <item>
+            <title><![CDATA[Samsung Partners with Solana to Natively Deliver Stablecoins in Samsung Wallet to 82 Million U.S. Galaxy Devices]]></title>
+            <link>https://solana.com/news/samsung-wallet</link>
+            <guid>samsung-wallet</guid>
+            <pubDate>Wed, 07 Oct 2026 23:30:00 GMT</pubDate>
+            <description><![CDATA[Beginning the last week of October 2026, Samsung Wallet will support USDC cross-border transfers on Solana across 82 million U.S. Galaxy devices.]]></description>
+            <enclosure length="0" type="image/webp" url="https://solana.com/uploads/posts/samsung-wallet/heroImage.webp"/>
+        </item>
+        <item>
+            <title><![CDATA[Solana Ecosystem Roundup: September 2026]]></title>
+            <link>https://solana.com/news/solana-ecosystem-roundup-september-2026</link>
+            <guid>solana-ecosystem-roundup-september-2026</guid>
+            <pubDate>Tue, 06 Oct 2026 19:38:00 GMT</pubDate>
+            <description><![CDATA[September saw growth across tokenized stocks, stablecoins, payments, and DeFi. Tokenized equity supply reached $684 million, stablecoins hit $17.51 billion, and the network processed 3.18 billion non-vote transactions.]]></description>
+            <enclosure length="0" type="image/webp" url="https://solana.com/uploads/posts/solana-ecosystem-roundup-september-2026/heroImage.webp"/>
+        </item>
+        <item>
+            <title><![CDATA[An item with no date]]></title>
+            <link>https://solana.com/news/undated</link>
+            <description><![CDATA[Should be dropped.]]></description>
+        </item>
+    </channel>
+</rss>

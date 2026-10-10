@@ -9,3 +9,5 @@ export * from './insights';
 export * from './fills';
 export * from './session';
 export * from './trust';
+export * from './solana';
+export * from './research';

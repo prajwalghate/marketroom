@@ -113,6 +113,20 @@
   --mr-venue-hyperliquid: #5f9a94;
   --mr-venue-solana: #8a7bb8;
 
+  /* ── Data palette — categories and chart series ───────────────────────── */
+  /* The one place the product is allowed to be colourful, because it is data:
+     a category, a round type, a chart series. Eight hues, distinguishable
+     from each other and each ≥ 3:1 as a mark on the card surfaces. Colour is
+     never the only key — every chart has a labelled legend and a table. */
+  --mr-data-1: #6e9ff2;
+  --mr-data-2: #a48ef5;
+  --mr-data-3: #43b9a5;
+  --mr-data-4: #ee9a55;
+  --mr-data-5: #e27fae;
+  --mr-data-6: #78c06a;
+  --mr-data-7: #d6b44a;
+  --mr-data-8: #5bb6dc;
+
   /* ── Typography ───────────────────────────────────────────────────────── */
   --mr-font-sans:
     var(--font-inter), ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
@@ -203,6 +217,15 @@
 
   --mr-venue-hyperliquid: #3d7a74;
   --mr-venue-solana: #6a5b98;
+
+  --mr-data-1: #3a73d6;
+  --mr-data-2: #7a5ce0;
+  --mr-data-3: #1b8c7c;
+  --mr-data-4: #c4621a;
+  --mr-data-5: #c64883;
+  --mr-data-6: #3a8f31;
+  --mr-data-7: #957410;
+  --mr-data-8: #1f84ae;
 
   --mr-shadow-sm: 0 1px 2px rgba(16, 20, 26, 0.06);
   --mr-shadow: 0 4px 16px -4px rgba(16, 20, 26, 0.1);

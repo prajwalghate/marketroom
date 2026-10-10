@@ -224,6 +224,10 @@ CASES.push(
   { fg: '--mr-up', bg: '--mr-surface-1', kind: 'nontext', where: 'sparkline / sector bar' },
   { fg: '--mr-down', bg: '--mr-surface-1', kind: 'nontext', where: 'sparkline / sector bar' },
   { fg: '--mr-flat', bg: '--mr-surface-1', kind: 'nontext', where: 'sparkline' },
+  ...[1, 2, 3, 4, 5, 6, 7, 8].flatMap((n) => [
+    { fg: `--mr-data-${n}`, bg: '--mr-surface-1', kind: 'nontext', where: 'chart series / category mark on card' },
+    { fg: `--mr-data-${n}`, bg: '--mr-surface-2', kind: 'nontext', where: 'chart series / category mark on inset' },
+  ]),
 
   // Reported, not gated.
   { fg: '--mr-border', bg: '--mr-bg', kind: 'info', where: 'hairline on page' },

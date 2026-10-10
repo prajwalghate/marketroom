@@ -25,6 +25,11 @@
 a DB adds ops burden and solves nothing we have), no auth, no order placement (see
 `01-data-sources.md` §3).
 
+> **Since then:** the Solana research platform needed connected, sourced records that are
+> corrected by editors, so it keeps them in Postgres — `packages/db`, with an embedded
+> PGlite when no `DATABASE_URL` is set. The tokenized-assets section still needs none. See
+> [ADR 0003](../adr/0003-connected-research-database.md).
+
 ---
 
 ## 2. Repository structure
@@ -52,6 +57,7 @@ marketroom/
 │   │       ├── venue.ts                    # VenueAdapter interface
 │   │       ├── hyperliquid/{rest,ws,map}.ts
 │   │       └── solana/                     # phase 2
+│   ├── db/                         # ⬅ research database: schema, imports, reads
 │   ├── catalog/                    # ⬅ curated data — one file per market
 │   │   └── src/markets/{nvda,skhx,gold,…}.ts
 │   ├── ui/                         # ⬅ design system. Tokens + primitives.
@@ -59,7 +65,7 @@ marketroom/
 │   └── config/                     # shared tsconfig / eslint / tailwind preset
 │
 ├── docs/
-│   ├── research/                   # ⬅ this research (deliverable 1)
+│   ├── research/                   # ⬅ data-source studies and this document
 │   └── adr/                        # architecture decision records
 └── .github/workflows/ci.yml
 ```
@@ -120,8 +126,7 @@ main                 always deployable; protected; squash-merge only
 
 ## 5. Design system direction
 
-Answering the "too vibrant, use restrained color with managed tokens" brief, informed by
-the measured teardown in `01` §5.
+Answering the "too vibrant, use restrained color with managed tokens" brief.
 
 **Principle: the data is the only thing allowed to be colorful.** Chrome is neutral.
 

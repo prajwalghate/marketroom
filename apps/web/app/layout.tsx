@@ -1,6 +1,9 @@
 import '@marketroom/ui/tokens.css';
 import './globals.css';
 import './trust.css';
+import './research.css';
+import './profiles.css';
+import './charts.css';
 
 import type { Metadata, Viewport } from 'next';
 import { Inter, JetBrains_Mono } from 'next/font/google';
@@ -8,6 +11,10 @@ import Link from 'next/link';
 import { PrimaryNav } from '@/components/PrimaryNav';
 import { Logo } from '@marketroom/ui';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { GlobalSearch } from '@/components/sol/GlobalSearch';
+import { AlertsBell } from '@/components/sol/Watchlist';
+import { Ticker } from '@/components/sol/Ticker';
+import { Suspense } from 'react';
 
 const inter = Inter({
   subsets: ['latin'],
@@ -24,11 +31,11 @@ const mono = JetBrains_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: 'Marketroom — tokenized equities across chains',
+    default: 'Marketroom — Solana research',
     template: '%s · Marketroom',
   },
   description:
-    'Every tokenized equity, across every venue. Compare the same ticker as a perpetual on Hyperliquid and a custody-backed token on Solana — live prices, structure and holder rights side by side.',
+    'Research the Solana ecosystem: every project, its funding and investors, its token and its on-chain activity — live, sourced, and dated.',
 };
 
 /**
@@ -59,11 +66,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning className={`${inter.variable} ${mono.variable}`}>
       <body>
-        {/* Theme is applied before first paint to avoid a flash of the wrong
-            theme. Inline by necessity — any external script would be too late. */}
+        {/* Theme, and a paused price ticker, are applied before first paint to
+            avoid a flash of the wrong state. Inline by necessity — any
+            external script would be too late. */}
         <script
           dangerouslySetInnerHTML={{
-            __html: `(function(){try{var t=localStorage.getItem('mr-theme');if(t==='light')document.documentElement.setAttribute('data-theme','light');}catch(e){}})();`,
+            __html: `(function(){try{var d=document.documentElement,t=null,k=null;try{t=localStorage.getItem('mr-theme');k=localStorage.getItem('mr-ticker');}catch(e){}if(t!=='light'&&t!=='dark'){t=window.matchMedia&&window.matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';}d.setAttribute('data-theme',t);if(k==='paused')d.setAttribute('data-ticker','paused');}catch(e){}})();`,
           }}
         />
 
@@ -71,17 +79,53 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Skip to content
         </a>
 
+        {/* Above the header, outside it: a price strip is information, not
+            navigation, and should not sit inside the sticky chrome. */}
+        <Suspense fallback={<div className="rx-ticker" aria-hidden="true" />}>
+          <Ticker />
+        </Suspense>
+
         <header className="mr-header">
           <div className="mr-header-inner">
             <Link href="/" className="mr-brand" aria-label="Marketroom home">
               <Logo className="mr-brand-mark" />
               <span className="mr-brand-text">
                 Marketroom
-                <span className="mr-brand-sub">Tokenized equities</span>
+                <span className="mr-brand-sub">Solana research</span>
               </span>
             </Link>
 
             <PrimaryNav />
+
+            <GlobalSearch />
+
+            {/* Narrow screens have no room for the search box: a link to the search page instead. */}
+            <Link href="/search" className="mr-btn-icon rx-search-icon" aria-label="Search">
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                aria-hidden="true"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+              >
+                <circle cx="11" cy="11" r="7" />
+                <path d="m20 20-3.5-3.5" />
+              </svg>
+            </Link>
+
+            <AlertsBell />
+
+            <Link
+              href="/watchlist"
+              className="mr-btn-icon rx-watch-link"
+              aria-label="Watchlist"
+              title="Watchlist"
+            >
+              <span aria-hidden="true">★</span>
+            </Link>
 
             <ThemeToggle />
           </div>
@@ -94,13 +138,21 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="mr-footer">
           <div className="mr-footer-inner">
             <p>
-              Marketroom aggregates public market data. It is not affiliated with Hyperliquid,
-              trade[XYZ], Backed Finance or any issuer.
+              Records from DefiLlama, Jupiter, OtterSec, GitHub, the Solana network and the
+              announcements they cite — every fact links to its source and the date it was checked.
+              Marketroom is not affiliated with any project, investor, venue or issuer it lists.
             </p>
             <p>
-              <strong>Not investment advice.</strong> Perpetual futures confer leveraged price
-              exposure, not ownership. Tokenized equities carry issuer, custody and redemption risk.
-              Verify every figure before acting on it.
+              <Link href="/api-docs">Free JSON API</Link> ·{' '}
+              <Link href="/method">How the database works</Link> ·{' '}
+              <Link href="/about">Tokenized-asset method</Link> ·{' '}
+              <Link href="/updates">Updates</Link> · <Link href="/watchlist">Your watchlist</Link> ·{' '}
+              <Link href="/admin">Editors</Link>
+            </p>
+            <p>
+              <strong>Not investment advice.</strong> Funding figures are those disclosed publicly;
+              undisclosed rounds are shown as undisclosed, never as zero. Verify every figure at its
+              source before acting on it.
             </p>
           </div>
         </footer>

@@ -17,6 +17,8 @@ const isMissing = (value: number | null | undefined): value is null | undefined 
  */
 export function formatCompactUsd(value: number | null | undefined, dp = 1): string {
   if (isMissing(value)) return EMPTY;
+  // A reported zero is "$0" — "$0.00" reads as a measurement precise to the cent.
+  if (value === 0) return '$0';
 
   const sign = value < 0 ? '-' : '';
   const magnitude = Math.abs(value);

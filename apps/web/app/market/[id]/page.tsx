@@ -116,12 +116,12 @@ export default async function MarketPage({ params }: { params: Promise<{ id: str
         >
           <li>
             <Link
-              href="/"
+              href="/tokenized-assets"
               prefetch
               className="mr-breadcrumb-link"
               style={{ color: 'var(--mr-text-subtle)' }}
             >
-              Markets
+              Tokenized assets
             </Link>
           </li>
           <li style={{ color: 'var(--mr-text-subtle)', margin: '0 7px' }} aria-hidden="true">

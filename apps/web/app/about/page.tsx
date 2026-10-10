@@ -243,7 +243,12 @@ export default function AboutPage() {
 
       <Block title="Open data">
         <p>
-          The same measurements are published as JSON, read-only and cached:{' '}
+          Everything on Marketroom is published as JSON — projects, funding rounds, the search index
+          and the trust check — documented on the{' '}
+          <a href="/api-docs" className="mr-trust-link">
+            API page
+          </a>
+          . The trust measurements specifically:{' '}
           <a href="/api/trust" className="mr-trust-link">
             /api/trust
           </a>{' '}

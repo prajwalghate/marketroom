@@ -38,7 +38,22 @@ function isRetryable(error: unknown): boolean {
   return error instanceof Error && error.name !== 'AbortError';
 }
 
-async function once(url: string, init: RequestInit, options: RequestOptions): Promise<unknown> {
+/** Turns a response into the caller's value, or throws for one that is not OK. */
+type Reader = (response: Response, url: string) => Promise<unknown>;
+
+const readJson: Reader = async (response, url) => {
+  if (!response.ok) {
+    throw new HttpError(response.status, url, await response.text().catch(() => ''));
+  }
+  return await response.json();
+};
+
+async function once(
+  url: string,
+  init: RequestInit,
+  options: RequestOptions,
+  read: Reader = readJson,
+): Promise<unknown> {
   // An `abort` listener only hears aborts that happen *after* it is attached.
   // A request started once a caller's deadline has already passed would never
   // hear it, and would run its full timeout and retries instead — which is how
@@ -63,23 +78,27 @@ async function once(url: string, init: RequestInit, options: RequestOptions): Pr
       ...(options.revalidate !== undefined ? { next: { revalidate: options.revalidate } } : {}),
     } as RequestInit);
 
-    if (!response.ok) {
-      throw new HttpError(response.status, url, await response.text().catch(() => ''));
-    }
-    return await response.json();
+    // Read inside the timeout: a body that stalls halfway is as dead as a
+    // server that never answers.
+    return await read(response, url);
   } finally {
     clearTimeout(timer);
     options.signal?.removeEventListener('abort', onCallerAbort);
   }
 }
 
-async function withRetry(url: string, init: RequestInit, options: RequestOptions) {
+async function withRetry(
+  url: string,
+  init: RequestInit,
+  options: RequestOptions,
+  read: Reader = readJson,
+) {
   const attempts = (options.retries ?? DEFAULT_RETRIES) + 1;
   let lastError: unknown;
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      return await once(url, init, options);
+      return await once(url, init, options, read);
     } catch (error) {
       lastError = error;
       // A caller that has given up is not served by a retry.
@@ -108,6 +127,99 @@ export const postJson = <T = unknown>(
 
 export const getJson = <T = unknown>(url: string, options: RequestOptions = {}): Promise<T> =>
   withRetry(url, { method: 'GET', headers: { Accept: 'application/json' } }, options) as Promise<T>;
+
+// ---------------------------------------------------------------------------
+// Headers and text bodies
+// ---------------------------------------------------------------------------
+
+/**
+ * An HTTP error that keeps the response headers. Rate-limited APIs say how
+ * much budget is left, and how long to wait, only there — GitHub in
+ * `x-ratelimit-remaining`, Solana's public RPC in `retry-after`.
+ */
+export class HttpResponseError extends HttpError {
+  constructor(
+    status: number,
+    url: string,
+    body: string,
+    readonly headers: Headers,
+  ) {
+    super(status, url, body);
+    this.name = 'HttpResponseError';
+  }
+}
+
+export interface FetchOptions extends RequestOptions {
+  /** Sent as given: `User-Agent` (some public nodes refuse the default), `Authorization`. */
+  readonly headers?: Readonly<Record<string, string>>;
+  /** A body to send as JSON. Its presence makes the request a POST. */
+  readonly json?: unknown;
+}
+
+export interface JsonResponse<T> {
+  readonly status: number;
+  readonly headers: Headers;
+  /** `null` for an empty body, which is how GitHub answers 204 No Content. */
+  readonly data: T | null;
+}
+
+const failWithHeaders = async (response: Response, url: string) => {
+  throw new HttpResponseError(
+    response.status,
+    url,
+    await response.text().catch(() => ''),
+    response.headers,
+  );
+};
+
+const readJsonWithHeaders: Reader = async (response, url) => {
+  if (!response.ok) return failWithHeaders(response, url);
+  const text = await response.text();
+  return {
+    status: response.status,
+    headers: response.headers,
+    data: text.trim() ? (JSON.parse(text) as unknown) : null,
+  };
+};
+
+const readText: Reader = async (response, url) => {
+  if (!response.ok) return failWithHeaders(response, url);
+  return response.text();
+};
+
+/**
+ * JSON with its response headers, for APIs whose rate limits live in them.
+ * Failures throw `HttpResponseError`, which carries the headers too.
+ */
+export const fetchJson = <T = unknown>(
+  url: string,
+  options: FetchOptions = {},
+): Promise<JsonResponse<T>> =>
+  withRetry(
+    url,
+    options.json === undefined
+      ? { method: 'GET', headers: { Accept: 'application/json', ...options.headers } }
+      : {
+          method: 'POST',
+          headers: {
+            Accept: 'application/json',
+            'Content-Type': 'application/json',
+            ...options.headers,
+          },
+          body: JSON.stringify(options.json),
+        },
+    options,
+    readJsonWithHeaders,
+  ) as Promise<JsonResponse<T>>;
+
+/** A text body — a feed, a web page. Failures throw `HttpResponseError`. */
+export const getText = (url: string, options: FetchOptions = {}): Promise<string> =>
+  withRetry(
+    url,
+    { method: 'GET', headers: { Accept: '*/*', ...options.headers } },
+    options,
+    readText,
+  ) as Promise<string>;
 
 /**
  * Parse an upstream stringly-typed numeric exactly once, here at the boundary.

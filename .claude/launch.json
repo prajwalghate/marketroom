@@ -7,6 +7,28 @@
       "runtimeArgs": ["--filter", "@marketroom/web", "dev", "--port", "3077"],
       "port": 3077,
       "autoPort": false
+    },
+    {
+      "name": "marketroom-prod",
+      "runtimeExecutable": "pnpm",
+      "runtimeArgs": ["--filter", "@marketroom/web", "start", "--port", "3088"],
+      "port": 3088,
+      "autoPort": false
+    },
+    {
+      "name": "marketroom-design",
+      "runtimeExecutable": "env",
+      "runtimeArgs": [
+        "MARKETROOM_UPKEEP=off",
+        "pnpm",
+        "--filter",
+        "@marketroom/web",
+        "dev",
+        "--port",
+        "3077"
+      ],
+      "port": 3077,
+      "autoPort": false
     }
   ]
 }

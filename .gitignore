@@ -10,6 +10,9 @@ build/
 .turbo/
 *.tsbuildinfo
 
+# local database (PGlite)
+.data/
+
 # env
 .env
 .env.local

@@ -41,15 +41,76 @@ const panelSettled = (page) =>
     { timeout: 10_000 },
   );
 
+/** The header search's equivalent: results listed, one active, nothing animating. */
+const searchSettled = (page) =>
+  page.waitForFunction(
+    () => {
+      const list = document.querySelector('.rx-search-list');
+      if (!list || !list.querySelector('.rx-search-hit.is-active, .rx-search-note')) return false;
+      return list.getAnimations({ subtree: true }).every((a) => a.playState === 'finished');
+    },
+    null,
+    { timeout: 20_000 },
+  );
+
 /**
  * `prepare` runs after load, for states that only exist after an interaction.
  * An overlay audited only while closed is an overlay that is never audited.
  */
 const PAGES = [
-  { name: 'home', path: '/' },
+  // ── Solana research platform ───────────────────────────────────────────
+  { name: 'overview', path: '/' },
   {
-    name: 'home-search-open',
+    name: 'overview-search-open',
     path: '/',
+    prepare: async (page) => {
+      const box = page.getByRole('combobox', {
+        name: 'Search projects, people, investors, tokens and programs',
+      });
+      await box.click();
+      await box.fill('jup');
+      await page.waitForSelector('.rx-search-hit, .rx-search-note', { timeout: 20_000 });
+      await page.keyboard.press('ArrowDown');
+      await searchSettled(page);
+    },
+  },
+  { name: 'projects', path: '/projects' },
+  { name: 'projects-filtered', path: '/projects?category=Lending&funded=yes&sort=raised' },
+  { name: 'projects-empty', path: '/projects?q=zzzznomatch' },
+  { name: 'project', path: '/projects/jupiter' },
+  { name: 'project-funded', path: '/projects/magic-eden' },
+  { name: 'project-programs', path: '/projects/kamino' },
+  { name: 'round', path: '/rounds/magic-eden-series-b-2022-06' },
+  { name: 'fundraising', path: '/fundraising' },
+  { name: 'fundraising-filtered', path: '/fundraising?round=Seed&sort=amount' },
+  { name: 'investors', path: '/investors' },
+  { name: 'investor', path: '/investors/multicoin-capital' },
+  { name: 'people', path: '/people' },
+  { name: 'person', path: '/people/anatoly-yakovenko' },
+  { name: 'programs', path: '/programs' },
+  { name: 'program', path: '/programs/KLend2g3cP87fffoy8q1mQqGKjrxjC8boSyAYavgmjD' },
+  { name: 'token', path: '/tokens/KMNo3nJsBXfcpJTVhZcXLW7RmTwTt4GVFE7suUBo9sS' },
+  { name: 'tokens', path: '/tokens' },
+  { name: 'rankings', path: '/rankings' },
+  { name: 'updates', path: '/updates' },
+  { name: 'search', path: '/search?q=jup' },
+  { name: 'method', path: '/method' },
+  { name: 'exchanges', path: '/exchanges' },
+  { name: 'discover', path: '/discover' },
+  { name: 'discover-projects', path: '/discover?tab=tvl' },
+  { name: 'calendar', path: '/calendar' },
+  { name: 'staking', path: '/staking' },
+  { name: 'compare', path: '/compare?p=jupiter,kamino,drift' },
+  { name: 'compare-empty', path: '/compare' },
+  { name: 'overview-7d-stocks', path: '/?period=7d&assets=stocks' },
+  { name: 'watchlist', path: '/watchlist' },
+  { name: 'api-docs', path: '/api-docs' },
+
+  // ── Tokenized assets (the original product, now a section) ─────────────
+  { name: 'assets', path: '/tokenized-assets' },
+  {
+    name: 'assets-search-open',
+    path: '/tokenized-assets',
     prepare: async (page) => {
       await page.getByRole('combobox', { name: 'Search markets' }).click();
       await page.getByRole('combobox', { name: 'Search markets' }).fill('tech');
@@ -59,8 +120,8 @@ const PAGES = [
     },
   },
   {
-    name: 'home-search-empty',
-    path: '/',
+    name: 'assets-search-empty',
+    path: '/tokenized-assets',
     prepare: async (page) => {
       await page.getByRole('combobox', { name: 'Search markets' }).click();
       await page.getByRole('combobox', { name: 'Search markets' }).fill('qqqzzz');
@@ -68,8 +129,8 @@ const PAGES = [
       await panelSettled(page);
     },
   },
-  { name: 'home-filtered', path: '/?class=commodity&venue=solana' },
-  { name: 'home-empty', path: '/?q=zzzznomatch' },
+  { name: 'assets-filtered', path: '/tokenized-assets?class=commodity&venue=solana' },
+  { name: 'assets-empty', path: '/tokenized-assets?q=zzzznomatch' },
   { name: 'market', path: '/market/nvda' },
   { name: 'market-single-venue', path: '/market/gold' },
   { name: 'trends', path: '/trends' },
@@ -103,7 +164,18 @@ for (const vp of VIEWPORTS) {
       // Mobile runs a subset; the same components are exercised either way.
       if (
         vp.name === 'mobile' &&
-        !['home', 'market', 'trends', 'home-search-open'].includes(target.name)
+        ![
+          'overview',
+          'projects',
+          'project-programs',
+          'round',
+          'investor',
+          'person',
+          'search',
+          'method',
+          'market',
+          'trends',
+        ].includes(target.name)
       ) {
         continue;
       }
@@ -185,7 +257,9 @@ for (const vp of VIEWPORTS) {
   // The skip link must be the first stop and must actually point somewhere.
   const skip = await page.evaluate(() => {
     const a = document.querySelector('a.mr-skip-link');
-    return a ? { href: a.getAttribute('href'), targetExists: !!document.querySelector('#main') } : null;
+    return a
+      ? { href: a.getAttribute('href'), targetExists: !!document.querySelector('#main') }
+      : null;
   });
   notes.push(`skip link: ${JSON.stringify(skip)}`);
 
@@ -203,9 +277,13 @@ for (const v of violations) {
 }
 
 console.log(`\n=== axe-core: ${unique.size} unique violations ===`);
-for (const v of [...unique.values()].sort((a, b) => (a.impact ?? '').localeCompare(b.impact ?? ''))) {
+for (const v of [...unique.values()].sort((a, b) =>
+  (a.impact ?? '').localeCompare(b.impact ?? ''),
+)) {
   console.log(`\n[${v.impact}] ${v.id} — ${v.help}`);
-  console.log(`  where: ${v.seenIn.slice(0, 3).join(', ')}${v.seenIn.length > 3 ? ` (+${v.seenIn.length - 3})` : ''}`);
+  console.log(
+    `  where: ${v.seenIn.slice(0, 3).join(', ')}${v.seenIn.length > 3 ? ` (+${v.seenIn.length - 3})` : ''}`,
+  );
   console.log(`  target: ${v.target}`);
   if (v.data?.contrastRatio) {
     console.log(
