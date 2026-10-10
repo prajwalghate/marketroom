@@ -1609,3 +1609,9 @@ a.rx-pstack-more:hover {
   background: var(--mr-surface-2);
   box-shadow: inset 3px 0 0 var(--mr-accent);
 }
+
+/* A profile header with no section tabs under it stands on its own. */
+.rx-hero:not(:has(+ .rx-stabs)) {
+  margin-bottom: 16px;
+  border-radius: var(--mr-radius-lg);
+}

@@ -185,6 +185,23 @@ export async function getMarkets(): Promise<TokenMarkets> {
   return getTokenMarkets().catch(() => EMPTY_MARKETS);
 }
 
+/**
+ * One token's live market, for a token the database has not recorded: from
+ * the shared market pass when it is there (the trending lists), else one
+ * Jupiter lookup by mint. `null` when Jupiter does not know the mint; a
+ * failed lookup throws, so it is retried rather than cached as unknown.
+ */
+export const getLiveToken = unstable_cache(
+  async (mint: string): Promise<TokenMarket | null> => {
+    const known = (await getMarkets()).byKey[mint];
+    if (known) return known;
+    const [found] = await new SolanaMarkets({}).byMints([mint]);
+    return found ?? null;
+  },
+  ['solana-live-token-v1'],
+  { revalidate: 5 * MINUTE, tags: ['solana'] },
+);
+
 // ---------------------------------------------------------------------------
 // Chain overview
 // ---------------------------------------------------------------------------

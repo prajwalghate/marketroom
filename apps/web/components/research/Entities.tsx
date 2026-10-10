@@ -226,3 +226,48 @@ export function EntityCard({
     </li>
   );
 }
+
+/**
+ * A protocol from DefiLlama's fee, revenue and volume tables: its project's
+ * profile when the database has it — products roll up, so PumpSwap opens
+ * pump.fun — and otherwise its DefiLlama page, marked as leaving the site.
+ */
+export function ProtocolLink({
+  slug,
+  name,
+  project,
+  children,
+}: {
+  /** DefiLlama's slug for the protocol. */
+  slug: string;
+  name: string;
+  /** The project that rolls it up, if any. */
+  project: string | null | undefined;
+  /** A logo, drawn before the name. */
+  children?: ReactNode;
+}) {
+  const body = (
+    <>
+      {children}
+      <span className="rx-entity-name">{name}</span>
+    </>
+  );
+  return project ? (
+    <Link href={projectHref(project)} className="rx-entity" prefetch={false}>
+      {body}
+    </Link>
+  ) : (
+    <a
+      href={`https://defillama.com/protocol/${encodeURIComponent(slug)}`}
+      className="rx-entity"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      {body}
+      <span className="rx-ext" aria-hidden="true">
+        ↗
+      </span>
+      <span className="sr-only"> (DefiLlama, opens in a new tab)</span>
+    </a>
+  );
+}

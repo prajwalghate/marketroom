@@ -3,6 +3,7 @@ import { formatCompactUsd, formatCount, formatPrice, projectRows } from '@market
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { ProtocolLink } from '@/components/research/Entities';
 import { Avatar } from '@/components/sol/Avatar';
 import { Delta, Empty, PageHead, ProjectCell, Tag } from '@/components/sol/primitives';
 import {
@@ -212,16 +213,11 @@ function TokenTable({ markets }: { markets: TokenMarket[] }) {
             <tr key={m.key}>
               <td className="is-rank mr-num">{i + 1}</td>
               <td>
-                <a
-                  href={`https://jup.ag/tokens/${m.mint}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="rx-entity"
-                >
+                <Link href={`/tokens/${m.mint}`} className="rx-entity" prefetch={false}>
                   <Avatar src={m.image} name={m.symbol || m.name} size={24} />
                   <span className="rx-entity-name">{m.name}</span>
                   <span className="rx-entity-sym mr-num">{m.symbol}</span>
-                </a>
+                </Link>
               </td>
               <td className="is-num">{formatPrice(m.price)}</td>
               <td className="is-num">
@@ -267,24 +263,13 @@ function FlowTable({
         </thead>
         <tbody>
           {entries.map((e, i) => {
-            const slug = slugs.get(e.slug);
-            const name = (
-              <span className="rx-entity">
-                <Avatar src={e.logo} name={e.name} size={24} />
-                <span className="rx-entity-name">{e.name}</span>
-              </span>
-            );
             return (
               <tr key={e.slug}>
                 <td className="is-rank mr-num">{i + 1}</td>
                 <td>
-                  {slug ? (
-                    <Link href={`/projects/${slug}`} className="rx-entity" prefetch={false}>
-                      {name}
-                    </Link>
-                  ) : (
-                    name
-                  )}
+                  <ProtocolLink slug={e.slug} name={e.name} project={slugs.get(e.slug)}>
+                    <Avatar src={e.logo} name={e.name} size={24} />
+                  </ProtocolLink>
                 </td>
                 <td className="rx-hide-sm">{e.category ? <Tag>{e.category}</Tag> : null}</td>
                 <td className="is-num">{formatCompactUsd(e[primary])}</td>

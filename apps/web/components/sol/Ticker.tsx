@@ -80,15 +80,14 @@ export async function Ticker() {
                 {body}
               </Link>
             ) : (
-              <a
-                href={`https://jup.ag/tokens/${m.mint}`}
+              <Link
+                href={`/tokens/${m.mint}`}
                 className="rx-ticker-item"
-                target="_blank"
-                rel="noopener noreferrer"
+                prefetch={false}
                 tabIndex={copy ? -1 : undefined}
               >
                 {body}
-              </a>
+              </Link>
             )}
           </li>
         );

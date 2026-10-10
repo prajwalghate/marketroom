@@ -1,7 +1,7 @@
 import type { FlowEntry } from '@marketroom/core';
 import { formatCompactUsd } from '@marketroom/core';
 import type { Metadata } from 'next';
-import Link from 'next/link';
+import { ProtocolLink } from '@/components/research/Entities';
 import { Avatar } from '@/components/sol/Avatar';
 import {
   AreaChart,
@@ -142,23 +142,13 @@ function Row({
   total: number;
   projectSlug: string | null;
 }) {
-  const name = (
-    <span className="rx-entity">
-      <Avatar src={e.logo} name={e.name} size={24} />
-      <span className="rx-entity-name">{e.name}</span>
-    </span>
-  );
   return (
     <tr>
       <td className="is-rank mr-num">{rank}</td>
       <td>
-        {projectSlug ? (
-          <Link href={`/projects/${projectSlug}`} className="rx-entity" prefetch={false}>
-            {name}
-          </Link>
-        ) : (
-          name
-        )}
+        <ProtocolLink slug={e.slug} name={e.name} project={projectSlug}>
+          <Avatar src={e.logo} name={e.name} size={24} />
+        </ProtocolLink>
       </td>
       <td className="is-num">{formatCompactUsd(e.total24h)}</td>
       <td className="rx-hide-sm">

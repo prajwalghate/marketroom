@@ -37,6 +37,7 @@ import { AreaSpark, Gauge, PieChart } from '@/components/charts/Charts';
 import { ColumnChart } from '@/components/charts/ColumnChart';
 import { TimeSeriesChart } from '@/components/charts/TimeSeriesChart';
 import { dataColor } from '@/components/charts/palette';
+import { ProtocolLink } from '@/components/research/Entities';
 import { Avatar } from '@/components/sol/Avatar';
 
 /**
@@ -113,6 +114,10 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
   // Joined without funding: nothing above the funding panels needs rounds, and
   // waiting for them here would hold the whole page on the slowest dataset.
   const rows = projectRows(projects, marketIndex, []);
+  // Every DefiLlama protocol a project rolls up (PumpSwap under pump.fun), by slug.
+  const protocols = new Map(
+    projects.flatMap((p) => p.sourceSlugs.map((s) => [s, p.slug] as const)),
+  );
 
   const sol = markets.byKey[SOL_MINT] ?? null;
   const tvlNow = tvl[tvl.length - 1]?.v ?? null;
@@ -262,8 +267,8 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
 
       {/* ── Market share & revenue ───────────────────────────────────────── */}
       <div className="rx-grid is-2">
-        <ShareOfVolume dexs={dexs} />
-        <RevenueOverview revenue={revenue} period={period} />
+        <ShareOfVolume dexs={dexs} protocols={protocols} />
+        <RevenueOverview revenue={revenue} period={period} protocols={protocols} />
       </div>
 
       {/* ── Projects ─────────────────────────────────────────────────────── */}
@@ -315,6 +320,7 @@ export default async function OverviewPage({ searchParams }: { searchParams: Pro
         <FlowPanel
           title="Fees leaders"
           flows={fees}
+          protocols={protocols}
           href="/discover?tab=fees"
           more="More rankings"
         />
@@ -498,8 +504,12 @@ async function TrendingAssets({
             <tr key={m.key}>
               <td className="is-rank mr-num">{i + 1}</td>
               <td>
-                {slug ? (
-                  <Link href={`/projects/${slug}`} className="rx-entity" prefetch={false}>
+                {slug || m.mint ? (
+                  <Link
+                    href={slug ? `/projects/${slug}` : `/tokens/${m.mint}`}
+                    className="rx-entity"
+                    prefetch={false}
+                  >
                     <TokenName market={m} />
                   </Link>
                 ) : (
@@ -579,7 +589,13 @@ async function StockAssets() {
   );
 }
 
-function ShareOfVolume({ dexs }: { dexs: FlowTotals | null }) {
+function ShareOfVolume({
+  dexs,
+  protocols,
+}: {
+  dexs: FlowTotals | null;
+  protocols: ReadonlyMap<string, string>;
+}) {
   const total = dexs?.total24h ?? 0;
   const active = (dexs?.entries ?? []).filter((e) => (e.total24h ?? 0) > 0);
   const top = active.slice(0, 5);
@@ -602,7 +618,11 @@ function ShareOfVolume({ dexs }: { dexs: FlowTotals | null }) {
             {[...top, { slug: 'others', name: 'Other venues', total24h: total - topSum }].map(
               (e) => (
                 <li key={e.slug}>
-                  <span>{e.name}</span>
+                  {e.slug === 'others' ? (
+                    <span>{e.name}</span>
+                  ) : (
+                    <ProtocolLink slug={e.slug} name={e.name} project={protocols.get(e.slug)} />
+                  )}
                   <ShareBar fraction={(e.total24h ?? 0) / total} />
                   <span className="mr-num" style={{ minWidth: 56 }}>
                     {(((e.total24h ?? 0) / total) * 100).toFixed(1)}%
@@ -617,7 +637,15 @@ function ShareOfVolume({ dexs }: { dexs: FlowTotals | null }) {
   );
 }
 
-function RevenueOverview({ revenue, period }: { revenue: FlowTotals | null; period: Period }) {
+function RevenueOverview({
+  revenue,
+  period,
+  protocols,
+}: {
+  revenue: FlowTotals | null;
+  period: Period;
+  protocols: ReadonlyMap<string, string>;
+}) {
   const entries = [...(revenue?.entries ?? [])]
     .filter((e) => (e[period.flow] ?? 0) > 0)
     .sort((a, b) => (b[period.flow] ?? 0) - (a[period.flow] ?? 0));
@@ -641,7 +669,7 @@ function RevenueOverview({ revenue, period }: { revenue: FlowTotals | null; peri
           <ol className="rx-breakdown">
             {entries.slice(0, 6).map((e) => (
               <li key={e.slug}>
-                <span>{e.name}</span>
+                <ProtocolLink slug={e.slug} name={e.name} project={protocols.get(e.slug)} />
                 <ShareBar fraction={(e[period.flow] ?? 0) / total} />
                 <span className="mr-num" style={{ minWidth: 64 }}>
                   {formatCompactUsd(e[period.flow])}
@@ -682,11 +710,13 @@ function TokenName({ market }: { market: TokenMarket }) {
 function FlowPanel({
   title,
   flows,
+  protocols,
   href,
   more,
 }: {
   title: string;
   flows: FlowTotals | null;
+  protocols: ReadonlyMap<string, string>;
   href: string;
   more: string;
 }) {
@@ -712,10 +742,9 @@ function FlowPanel({
               {top.map((e) => (
                 <tr key={e.slug}>
                   <td>
-                    <span className="rx-entity">
+                    <ProtocolLink slug={e.slug} name={e.name} project={protocols.get(e.slug)}>
                       <Avatar src={e.logo ?? null} name={e.name} size={22} shape="square" />
-                      <span className="rx-entity-name">{e.name}</span>
-                    </span>
+                    </ProtocolLink>
                   </td>
                   <td className="is-num">{formatCompactUsd(e.total24h)}</td>
                   <td className="rx-hide-sm">
