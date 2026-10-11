@@ -46,7 +46,9 @@ export type AdminMode = 'open' | 'token' | 'disabled';
 
 export function adminMode(): AdminMode {
   if (editors().length) return 'token';
-  return process.env.NODE_ENV === 'production' ? 'disabled' : 'open';
+  // Open only on a developer's machine: never on a production build, and
+  // never on any Vercel deployment (production or preview).
+  return process.env.NODE_ENV === 'production' || process.env.VERCEL ? 'disabled' : 'open';
 }
 
 const digest = (token: string) =>

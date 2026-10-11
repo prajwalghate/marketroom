@@ -39,17 +39,22 @@ export async function search(
 ): Promise<SearchHit[]> {
   const raw = query.trim();
   const q = normalizeName(raw);
-  if (!q && raw.length < 3) return [];
+  // Nothing left to match once punctuation is stripped (an address never
+  // normalizes to empty): no results, rather than every record.
+  if (!q) return [];
   const perType = Math.min(options.perType ?? 6, 50);
   const want = new Set(options.types ?? ['project', 'person', 'investor', 'token', 'program']);
   const prefix = `${like(q)}%`;
   const word = `% ${like(q)}%`;
   const addr = `${like(raw)}%`;
 
-  const tier = (expr: string) =>
-    sql.raw(`case when ${expr} = '${q.replace(/'/g, "''")}' then 0
-      when ${expr} like '${prefix.replace(/'/g, "''")}' then 1
-      when ${expr} like '${word.replace(/'/g, "''")}' then 2 else 3 end`);
+  // `expr` is always a fixed column expression; the query only ever travels
+  // as a bound parameter.
+  const tier = (expr: string) => {
+    const column = sql.raw(expr);
+    return sql`case when ${column} = ${q} then 0 when ${column} like ${prefix} then 1
+      when ${column} like ${word} then 2 else 3 end`;
+  };
 
   const where = matchers(q, raw);
   const parts = [];
@@ -158,7 +163,7 @@ export async function searchCounts(
   const raw = query.trim();
   const q = normalizeName(raw);
   const empty = { project: 0, person: 0, investor: 0, token: 0, program: 0 };
-  if (!q && raw.length < 3) return empty;
+  if (!q) return empty;
   const where = matchers(q, raw);
   const found = await rows<{ type: SearchType; n: number }>(
     db,

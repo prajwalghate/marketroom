@@ -186,21 +186,15 @@ export async function getMarkets(): Promise<TokenMarkets> {
 }
 
 /**
- * One token's live market, for a token the database has not recorded: from
- * the shared market pass when it is there (the trending lists), else one
- * Jupiter lookup by mint. `null` when Jupiter does not know the mint; a
- * failed lookup throws, so it is retried rather than cached as unknown.
+ * One token's live market, for a token the database has not recorded — but
+ * only one the shared market pass already holds (the trending, traded and
+ * organic lists, and every project token), which is every token the site
+ * links to. An arbitrary address is never looked up: a public page that
+ * fetched upstream for any input would let anyone spend our API quota.
  */
-export const getLiveToken = unstable_cache(
-  async (mint: string): Promise<TokenMarket | null> => {
-    const known = (await getMarkets()).byKey[mint];
-    if (known) return known;
-    const [found] = await new SolanaMarkets({}).byMints([mint]);
-    return found ?? null;
-  },
-  ['solana-live-token-v1'],
-  { revalidate: 5 * MINUTE, tags: ['solana'] },
-);
+export async function getLiveToken(mint: string): Promise<TokenMarket | null> {
+  return (await getMarkets()).byKey[mint] ?? null;
+}
 
 // ---------------------------------------------------------------------------
 // Chain overview

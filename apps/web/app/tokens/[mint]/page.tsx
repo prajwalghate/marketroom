@@ -42,28 +42,23 @@ const TOKEN_2022 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
 const MINT = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
 /**
- * A token the database has recorded, or — for any other mint, such as a token
- * on a trending list — its live market from Jupiter, so every token named on
- * the site has a page.
+ * A token the database has recorded, or one the site's market data holds —
+ * a token on a trending list — with its live market from Jupiter, so every
+ * token named on the site has a page. Any other address is not found.
  */
 async function lookup(raw: string) {
   const mint = decodeURIComponent(raw);
   if (!MINT.test(mint)) return null;
   const profile = await loadTokenProfile(await researchDb(), mint).catch(() => null);
   if (profile) return { kind: 'recorded' as const, profile };
-  try {
-    const live = await getLiveToken(mint);
-    return live?.mint ? { kind: 'live' as const, live } : null;
-  } catch {
-    // Jupiter did not answer (a rate limit, an outage): say so, not "not found".
-    return { kind: 'unavailable' as const, mint };
-  }
+  const live = await getLiveToken(mint);
+  return live?.mint ? { kind: 'live' as const, live } : null;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { mint } = await params;
   const found = await lookup(mint);
-  if (!found || found.kind === 'unavailable') return { title: 'Token' };
+  if (!found) return { title: 'Token' };
   if (found.kind === 'live')
     return {
       title: found.live.symbol || found.live.name || 'Token',
@@ -80,7 +75,6 @@ export default async function TokenPage({ params }: Props) {
   const { mint } = await params;
   const [found, editor] = await Promise.all([lookup(mint), currentEditor()]);
   if (!found) notFound();
-  if (found.kind === 'unavailable') return <Unavailable mint={found.mint} />;
   if (found.kind === 'live') return <LiveToken market={found.live} />;
   const { token, project, history } = found.profile;
   const m = token.market;
@@ -388,41 +382,6 @@ function LiveToken({ market: m }: { market: TokenMarket }) {
               ]}
             />
           </AsideCard>
-        }
-      />
-    </div>
-  );
-}
-
-/** The token could not be looked up just now; the page says so and points elsewhere. */
-function Unavailable({ mint }: { mint: string }) {
-  return (
-    <div className="mr-container">
-      <Breadcrumbs items={[{ label: 'Tokens', href: '/tokens' }, { label: 'Token' }]} />
-      <ProfileHero
-        name={mint}
-        title="Token"
-        subtitle="This token is not in the database, and its live market could not be loaded just now. Try again in a minute."
-        links={
-          <>
-            <CopyAddress address={mint} />
-            <a
-              className="rx-pill"
-              href={`https://solscan.io/token/${mint}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Solscan<span className="sr-only"> (opens in a new tab)</span>
-            </a>
-            <a
-              className="rx-pill"
-              href={`https://jup.ag/tokens/${mint}`}
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Jupiter<span className="sr-only"> (opens in a new tab)</span>
-            </a>
-          </>
         }
       />
     </div>

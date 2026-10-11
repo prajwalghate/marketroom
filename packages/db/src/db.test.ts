@@ -369,6 +369,14 @@ describe('search', () => {
       (await search(handle.db, 'multicoin')).filter((h) => h.type === 'investor'),
     ).toHaveLength(2);
   });
+
+  it('treats quotes and SQL in a query as text to search for', async () => {
+    for (const q of ["kamino' or '1'='1", "x'; drop table projects; --", '%_\\']) {
+      const hits = await search(handle.db, q);
+      expect(hits.every((h) => h.type !== 'project' || /kamino/i.test(h.name))).toBe(true);
+    }
+    expect((await search(handle.db, 'kamino'))[0]).toMatchObject({ key: 'kamino' });
+  });
 });
 
 describe('duplicates', () => {

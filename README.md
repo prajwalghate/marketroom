@@ -261,6 +261,28 @@ should be:
 
 Every data source is public; the optional keys in `.env.example` add coverage.
 
+### Running in public
+
+The repository is public, so the deployment assumes everyone can read its code:
+
+- **No secret lives in git.** Credentials exist only as Vercel environment variables; `.env*`
+  files and `.vercel/` are ignored. Pull requests from forks wait for a maintainer's
+  approval before Vercel builds them (Git Fork Protection), so a stranger's code never
+  runs with the project's environment. Preview deployments need a Vercel login.
+- **Writes need a credential.** Without `ADMIN_TOKENS` the editors' dashboard does not
+  exist on any deployment, and every editing action checks the editor on the server;
+  `/api/cron/upkeep` refuses every call without `CRON_SECRET`. Secrets are compared in
+  constant time.
+- **Public pages cannot be used to spend upstream quota.** Imports run on their own
+  schedule, one server at a time, however many visitors arrive; live token pages exist
+  only for tokens already in the site's market data, so an arbitrary address is a 404,
+  not an API call; input reaches Postgres only as bound parameters, or as integers checked first.
+- **Headers.** No site may frame it (`frame-ancestors 'none'`), content types are not
+  sniffed, and the dashboard is never indexed.
+- **Nothing to bill.** Vercel Hobby and Neon Free carry no payment method, so traffic,
+  however heavy, can exhaust a free quota but not run up a bill; Vercel's platform
+  DDoS mitigation applies on every plan.
+
 ### What gets rendered how
 
 | Route                                   | Mode    |                                                                         |

@@ -1158,6 +1158,9 @@ export async function mergeRecords(
   input: { type: MergeType; winnerId: number; loserId: number; actor: string },
 ): Promise<void> {
   const { type, winnerId: w, loserId: l } = input;
+  // The ids are spliced into statement text below; only integers get there.
+  if (!Number.isSafeInteger(w) || !Number.isSafeInteger(l) || w <= 0 || l <= 0)
+    throw new EditError('Choose two records to merge.');
   if (w === l) throw new EditError('Choose two different records.');
   const table = {
     project: 'projects',

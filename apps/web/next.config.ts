@@ -24,6 +24,28 @@ const config: NextConfig = {
     // Prefetch aggressively: navigation should never show a loading state.
     optimisticClientCache: true,
   },
+  // The site is public and its source is too. No other site may frame it
+  // (clickjacking an editor), browsers may not guess content types, and
+  // referrers stop at the origin when leaving.
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'Content-Security-Policy', value: "frame-ancestors 'none'" },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+        ],
+      },
+      {
+        // The editors' dashboard never belongs in a search index.
+        source: '/admin/:path*',
+        headers: [{ key: 'X-Robots-Tag', value: 'noindex, nofollow' }],
+      },
+    ];
+  },
 };
 
 export default config;

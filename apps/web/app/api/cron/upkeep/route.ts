@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import { runDueJobs } from '@marketroom/db';
 import { NextResponse } from 'next/server';
 import { clearReadCache, getDb, jobEnv } from '@/lib/db';
@@ -10,10 +11,18 @@ import { clearReadCache, getDb, jobEnv } from '@/lib/db';
 export const dynamic = 'force-dynamic';
 export const maxDuration = 300;
 
+/** Compared as digests, so the comparison takes the same time whatever was sent. */
+const sameSecret = (given: string, expected: string) =>
+  timingSafeEqual(
+    createHash('sha256').update(given).digest(),
+    createHash('sha256').update(expected).digest(),
+  );
+
 export async function GET(request: Request) {
   const secret = process.env.CRON_SECRET;
-  const auth = request.headers.get('authorization');
-  if (secret ? auth !== `Bearer ${secret}` : process.env.NODE_ENV === 'production') {
+  const auth = request.headers.get('authorization') ?? '';
+  const deployed = process.env.NODE_ENV === 'production' || !!process.env.VERCEL;
+  if (secret ? !sameSecret(auth, `Bearer ${secret}`) : deployed) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
   const ran = await runDueJobs(await getDb(), { env: jobEnv(), requestedBy: 'cron' });
